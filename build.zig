@@ -14,7 +14,7 @@ pub fn build(b: *std.Build) void {
     const abelha_mod = b.addModule("abelha", .{
         .root_source_file = b.path("src/parser.zig"),
         .target = target,
-        .optimize = optimize,
+        .optimize = .ReleaseFast,
     });
 
     exe.root_module.addImport("abelha", abelha_mod);
