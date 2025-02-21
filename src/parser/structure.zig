@@ -56,13 +56,13 @@ pub fn separated_list1(T: type, seq: anytype, parser: anytype) fn ([]const u8) a
                 const res = seq(result.rest) catch {
                     return ParseResult([]const T){ .rest = result.rest, .result = results.items };
                 };
-                rest_input = res.rest;
-            } else |e| {
-                if (results.items.len == 0) {
-                    return e;
+                if (res.rest.len == 0) {
+                    return ParseResult([]const T){ .rest = rest_input, .result = try results.toOwnedSlice() };
                 } else {
-                    return ParseResult([]const T){ .rest = rest_input, .result = results.items };
+                    rest_input = res.rest;
                 }
+            } else |e| {
+                return e;
             }
         }
     }.parse;
