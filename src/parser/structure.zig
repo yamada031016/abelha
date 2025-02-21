@@ -70,7 +70,7 @@ pub fn separated_list1(T: type, seq: anytype, parser: anytype) fn ([]const u8) a
 
 test "separated_list1" {
     const text = "abc|abc|abc";
-    const result = try separated_list1(tag("|"), tag("abc"))(text);
+    const result = try separated_list1([]const u8, tag("|"), tag("abc"))(text);
     const answer = [_][]const u8{ "abc", "abc", "abc" };
-    try std.testing.expectEqualSlices([]const u8, &answer, result.result.items);
+    try std.testing.expectEqualSlices([]const u8, &answer, result.result);
 }

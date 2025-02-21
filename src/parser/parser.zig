@@ -23,3 +23,7 @@ pub const ParseError = error{
 
 pub const IResult = ParseResult([]const u8);
 pub const ParserFunc = fn ([]const u8) anyerror!IResult;
+
+test {
+    std.testing.refAllDecls(@This());
+}
