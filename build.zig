@@ -12,7 +12,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const abelha_mod = b.addModule("abelha", .{
-        .root_source_file = b.path("src/parser.zig"),
+        .root_source_file = b.path("src/parser/parser.zig"),
         .target = target,
         .optimize = .ReleaseFast,
     });

@@ -1,17 +1,22 @@
 const std = @import("std");
-const abelha = @import("parser.zig");
+const ab = @import("parser/parser.zig");
 
-fn parseHex(input: []const u8) !abelha.ParseResult(u8) {
-    const res = try abelha.take(2)(input);
+const ParseResult = ab.ParseResult;
+const tag = ab.basic.tag;
+const take = ab.basic.take;
+const separated_list1 = ab.structure.separated_list1;
+
+fn parseHex(input: []const u8) !ParseResult(u8) {
+    const res = try take(2)(input);
     const hex = try std.fmt.parseInt(u8, res.result, 16);
-    return abelha.ParseResult(u8){ .rest = res.rest, .result = hex };
+    return ParseResult(u8){ .rest = res.rest, .result = hex };
 }
 
-fn hexColor(input: []const u8) !abelha.ParseResult([]const u8) {
-    const result = try abelha.tag("#")(input);
-    const res = try abelha.separated_list1(
+fn hexColor(input: []const u8) !ParseResult([]const u8) {
+    const result = try tag("#")(input);
+    const res = try separated_list1(
         u8,
-        abelha.tag(""),
+        tag(""),
         parseHex,
     )(result.rest);
     return res;
