@@ -46,13 +46,17 @@ pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ParseResult([]const []
                     array.append(res.result) catch |err| {
                         return err;
                     };
-                    rest_input = res.rest;
-                } else |e| {
-                    if (array.getLastOrNull()) |_| {
-                        return ParseResult([]const []const u8){ .rest = rest_input, .result = try array.toOwnedSlice() };
+                    if (res.rest.len == 0) {
+                        return ParseResult([]const []const u8){ .rest = res.rest, .result = try array.toOwnedSlice() };
                     } else {
-                        return e;
+                        rest_input = res.rest;
                     }
+                } else |e| {
+                    // if (array.getLastOrNull()) |_| {
+                    //     return ParseResult([]const []const u8){ .rest = rest_input, .result = try array.toOwnedSlice() };
+                    // } else {
+                    return e;
+                    // }
                 }
             }
         }
