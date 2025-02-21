@@ -81,14 +81,29 @@ pub fn is_not(needle: []const u8) ParserFunc {
                 return ParseError.InputTooShort;
             }
 
-            for (input, 0..) |c, i| {
-                for (needle) |n| {
-                    if (c == n) {
-                        return IResult{ .rest = input[i..], .result = input[0..i] };
+            // for (input, 0..) |c, i| {
+            //     for (needle) |n| {
+            //         if (c == n) {
+            //             return IResult{ .rest = input[i..], .result = input[0..i] };
+            //         }
+            //     }
+            // }
+            // return IResult{ .rest = "", .result = input };
+
+            var min_pos: ?usize = null;
+            for (0..needle.len) |i| {
+                if (std.mem.indexOf(u8, input, needle[i..i])) |_| {
+                    if (i < min_pos) {
+                        min_pos = i;
                     }
                 }
             }
-            return IResult{ .rest = "", .result = input };
+
+            if (min_pos) |min| {
+                return IResult{ .rest = input[min..], .result = input[0..min] };
+            } else {
+                return IResult{ .rest = "", .result = input };
+            }
         }
     }.parse;
 }
