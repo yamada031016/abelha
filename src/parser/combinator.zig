@@ -19,9 +19,7 @@ pub fn alt(T: type, parser_tupple: anytype) fn ([]const u8) anyerror!ParseResult
                 } else |e| {
                     // ignore error
                     switch (e) {
-                        else => {
-                            continue;
-                        },
+                        else => {},
                     }
                 }
             } else {
