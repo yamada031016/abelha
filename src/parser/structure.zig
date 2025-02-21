@@ -49,20 +49,24 @@ pub fn preceded(first: ParserFunc, second: ParserFunc) ParserFunc {
 pub fn separated_list1(T: type, seq: anytype, parser: anytype) fn ([]const u8) anyerror!ParseResult([]const T) {
     return struct {
         fn parse(input: []const u8) !ParseResult([]const T) {
-            var results = std.ArrayList(T).init(std.heap.page_allocator);
+            var array = std.ArrayList(T).init(std.heap.page_allocator);
             var rest_input = input;
             while (parser(rest_input)) |result| {
-                try results.append(result.result);
+                try array.append(result.result);
                 const res = seq(result.rest) catch {
-                    return ParseResult([]const T){ .rest = result.rest, .result = results.items };
+                    return ParseResult([]const T){ .rest = result.rest, .result = array.items };
                 };
                 if (res.rest.len == 0) {
-                    return ParseResult([]const T){ .rest = rest_input, .result = try results.toOwnedSlice() };
+                    return ParseResult([]const T){ .rest = rest_input, .result = try array.toOwnedSlice() };
                 } else {
                     rest_input = res.rest;
                 }
             } else |e| {
-                return e;
+                if (array.getLastOrNull()) |_| {
+                    return ParseResult([]const []const u8){ .rest = rest_input, .result = try array.toOwnedSlice() };
+                } else {
+                    return e;
+                }
             }
         }
     }.parse;
