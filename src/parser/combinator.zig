@@ -35,9 +35,9 @@ test "alt" {
     try std.testing.expectEqualStrings("*italic*", result.result);
 }
 
-pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ParseResult([][]const u8) {
+pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ParseResult([]const []const u8) {
     return struct {
-        fn parse(input: []const u8) !ParseResult([][]const u8) {
+        fn parse(input: []const u8) !ParseResult([]const []const u8) {
             var array = std.ArrayList([]const u8).init(std.heap.page_allocator);
             var rest_input = input;
             while (true) {
@@ -49,7 +49,7 @@ pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ParseResult([][]const 
                     rest_input = res.rest;
                 } else |e| {
                     if (array.getLastOrNull()) |_| {
-                        return ParseResult([][]const u8){ .rest = rest_input, .result = try array.toOwnedSlice() };
+                        return ParseResult([]const []const u8){ .rest = rest_input, .result = try array.toOwnedSlice() };
                     } else {
                         return e;
                     }
@@ -63,4 +63,5 @@ test "many1 char" {
     const target = "### hogehoge";
     const result = try many1(char('#'))(target);
     try std.testing.expectEqual(3, result.result.len);
+    try std.testing.expectEqualStrings("###", try std.mem.concat(std.heap.page_allocator, u8, result.result));
 }

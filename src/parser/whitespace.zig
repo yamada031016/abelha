@@ -23,5 +23,6 @@ pub fn newline(input: []const u8) !IResult {
 }
 
 pub fn space1(input: []const u8) !IResult {
-    return many1(char(' '))(input);
+    const result = try many1(char(' '))(input);
+    return IResult{ .rest = result.rest, .result = try std.mem.concat(std.heap.page_allocator, u8, result.result) };
 }
