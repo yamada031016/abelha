@@ -46,13 +46,13 @@ pub fn tag(needle: []const u8) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {
             if (input.len < needle.len) {
-                std.log.err("target string: {s}(len: {})\nneedle: {s}(len: {})\n", .{ input, input.len, needle, needle.len });
+                std.log.debug("target string: {s}(len: {})\nneedle: {s}(len: {})\n", .{ input, input.len, needle, needle.len });
                 return ParseError.NeedleTooShort;
             } else {
                 if (std.mem.eql(u8, input[0..needle.len], needle)) {
                     return IResult{ .rest = input[needle.len..], .result = needle };
                 } else {
-                    std.log.err("target string: {s}\nneedle: {s}\n", .{ input, needle });
+                    std.log.debug("target string: {s}\nneedle: {s}\n", .{ input, needle });
                     return ParseError.NotFound;
                 }
             }
