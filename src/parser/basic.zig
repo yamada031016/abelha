@@ -88,7 +88,7 @@ pub fn is_not(needle: []const u8) ParserFunc {
                     }
                 }
             }
-            return IResult{ .rest = "", .result = input };
+            return ParseError.NotFound;
 
             // var min_pos: ?usize = null;
             // for (0..needle.len) |i| {
