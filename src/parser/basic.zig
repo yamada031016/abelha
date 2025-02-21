@@ -72,3 +72,22 @@ pub fn take_until(end: []const u8) ParserFunc {
         }
     }.parse;
 }
+
+pub fn is_not(needle: []const u8) ParserFunc {
+    return struct {
+        fn parse(input: []const u8) !IResult {
+            if (input.len == 0) {
+                return ParseError.InputTooShort;
+            }
+
+            for (input, 0..) |c, i| {
+                for (needle) |n| {
+                    if (c == n) {
+                        return IResult{ .rest = input[i..], .result = input[0..i] };
+                    }
+                }
+            }
+            return IResult{ .rest = "", .result = input };
+        }
+    }.parse;
+}
