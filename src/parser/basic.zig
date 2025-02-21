@@ -93,7 +93,11 @@ pub fn is_not(needle: []const u8) ParserFunc {
             var min_pos: ?usize = null;
             for (0..needle.len) |i| {
                 if (std.mem.indexOf(u8, input, needle[i..i])) |_| {
-                    if (i < min_pos) {
+                    if (min_pos) |min| {
+                        if (i < min) {
+                            min_pos = i;
+                        }
+                    } else {
                         min_pos = i;
                     }
                 }
