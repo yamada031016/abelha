@@ -52,11 +52,11 @@ pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ParseResult([]const []
                         rest_input = res.rest;
                     }
                 } else |e| {
-                    // if (array.getLastOrNull()) |_| {
-                    //     return ParseResult([]const []const u8){ .rest = rest_input, .result = try array.toOwnedSlice() };
-                    // } else {
-                    return e;
-                    // }
+                    if (array.getLastOrNull()) |_| {
+                        return ParseResult([]const []const u8){ .rest = rest_input, .result = try array.toOwnedSlice() };
+                    } else {
+                        return e;
+                    }
                 }
             }
         }
