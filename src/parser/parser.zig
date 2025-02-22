@@ -25,6 +25,8 @@ pub const ParseError = error{
 
 /// Basic Result type of parser provided by Abelha
 pub const IResult = ParseResult([]const u8);
+
+/// Basic function signature of parser provided by Abelha
 pub const ParserFunc = fn ([]const u8) anyerror!IResult;
 
 test {
