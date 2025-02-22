@@ -54,9 +54,11 @@ pub fn separated_list1(T: type, seq: anytype, parser: anytype) fn ([]const u8) a
             while (parser(rest_input)) |result| {
                 try array.append(result.result);
                 const res = seq(result.rest) catch {
+                    std.log.warn("separater {any} failed.\n", .{seq});
                     return ParseResult([]const T){ .rest = result.rest, .result = array.items };
                 };
                 if (res.rest.len == 0) {
+                    std.log.debug("input is fully consumed.\n", .{});
                     return ParseResult([]const T){ .rest = rest_input, .result = try array.toOwnedSlice() };
                 } else {
                     rest_input = res.rest;
