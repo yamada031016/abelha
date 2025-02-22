@@ -12,6 +12,14 @@ pub fn newline(input: []const u8) !IResult {
     if (char('\n')(input)) |result| {
         return IResult{ .rest = result.rest, .result = result.result };
     } else |e| {
+        return e;
+    }
+}
+
+pub fn line_ending(input: []const u8) !IResult {
+    if (char('\n')(input)) |result| {
+        return IResult{ .rest = result.rest, .result = result.result };
+    } else |e| {
         switch (e) {
             ParseError.NotFound => {
                 const result = try tag("\r\n")(input);

@@ -106,3 +106,11 @@ pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) anyerror!P
         }
     }.parse;
 }
+
+pub fn eof(input: []const u8) !IResult {
+    if (input.len == 0) {
+        return IResult{ .rest = "", .result = "" };
+    } else {
+        return ParseError.NotFound;
+    }
+}
