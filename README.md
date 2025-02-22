@@ -86,13 +86,13 @@ Abelha provides a rich set of combinators:
 - `separated_list1(sep, p)` – Parses a list with a separator.
 - `delimited(open, p, close)` – Parses content between delimiters.
 - `alt(p1, p2, …)` – Attempts multiple parsers and picks the first successful one.
-If you want to know about other combinators, see the API reference!
+If you want to know about other combinators, see the [API Reference](https://yamada031016.github.io/abelha/)!
 
 ---
 
 ## 📚 Documentation
 
-- **[API Reference]()**
+- **[API Reference](https://yamada031016.github.io/abelha/)**
 
 ---
 
