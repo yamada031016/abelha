@@ -29,6 +29,54 @@ name: Deploy API Reference to GitHub Pages
 #           publish_dir: zig-out/docs
 #           keep_files: false
 #           commit_message: "Deploy docs from master"
+# on:
+#   push:
+#     branches: ["master"]
+#   workflow_dispatch:
+#
+# permissions:
+#   pages: write
+#   contents: read
+#   id-token: write
+#
+# concurrency:
+#   group: pages
+#   cancel-in-progress: false
+#
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#
+#     steps:
+#       - name: Checkout Repository
+#         uses: actions/checkout@v4
+#
+#       - name: Install Zig
+#         uses: korandoru/setup-zig@v1
+#         with:
+#           zig-version: master
+#
+#       - name: Build Documentation
+#         run: zig build docs
+#
+#       - name: Setup Pages
+#         uses: actions/configure-pages@v4
+#
+#       - name: Upload artifact
+#         uses: actions/upload-pages-artifact@v3
+#         with:
+#           path: zig-out/docs/
+#
+#   deploy:
+#     needs: build
+#     runs-on: ubuntu-latest
+#     environment:
+#       name: github-pages
+#       url: ${{ steps.deployment.outputs.page_url }}
+#     steps:
+#       - name: Deploy to GitHub Pages
+#         id: deployment
+#         uses: actions/deploy-pages@v4
 on:
   push:
     branches: ["master"]
@@ -48,15 +96,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install Zig
-        uses: korandoru/setup-zig@v1
-        with:
-          zig-version: master
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
 
-      - name: Build Documentation
+      - name: Generate docs
         run: zig build docs
 
       - name: Setup Pages
