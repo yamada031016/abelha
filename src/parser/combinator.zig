@@ -123,3 +123,18 @@ pub fn peek(parser: ParserFunc) ParserFunc {
         }
     }.parse;
 }
+
+pub fn not(expect_fail_parser: ParserFunc) ParserFunc {
+    return struct {
+        fn parse(input: []const u8) !IResult {
+            const result = expect_fail_parser(input);
+            if (result) |_| {
+                return ParseError.NotFound;
+            } else |e| {
+                switch (e) {
+                    else => return IResult{ .rest = input, .result = "" },
+                }
+            }
+        }
+    }.parse;
+}
