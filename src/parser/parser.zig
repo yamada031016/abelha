@@ -6,7 +6,7 @@ pub const bytes = @import("bytes/bytes.zig");
 pub const multi = @import("multi/multi.zig");
 pub const combinator = @import("combinator/combinator.zig");
 
-/// Generic Result type.
+/// Generic Result type
 pub fn ParseResult(T: anytype) type {
     return struct {
         rest: []const u8,
