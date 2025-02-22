@@ -2,9 +2,9 @@ const std = @import("std");
 const ab = @import("parser/parser.zig");
 
 const ParseResult = ab.ParseResult;
-const tag = ab.basic.tag;
-const take = ab.basic.take;
-const separated_list1 = ab.structure.separated_list1;
+const tag = ab.bytes.tag;
+const take = ab.bytes.take;
+const separated_list1 = ab.multi.separated_list1;
 
 fn parseHex(input: []const u8) !ParseResult(u8) {
     const res = try take(2)(input);

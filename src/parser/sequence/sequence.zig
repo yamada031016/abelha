@@ -8,6 +8,10 @@ const ParseError = ab.ParseError;
 const tag = ab.bytes.tag;
 const take_until = ab.bytes.take_until;
 
+/// Discard elements recognized by the parser `start`, then get elements recognized by the parser `content`, and finally discard elements recognized by the parser `end`.
+/// - `start` The first parser to apply and discard.
+/// - `content` The second parser to apply.
+/// - `end` The third parser to apply and discard.
 pub fn delimited(start: ParserFunc, content: ParserFunc, end: ParserFunc) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {
@@ -20,12 +24,13 @@ pub fn delimited(start: ParserFunc, content: ParserFunc, end: ParserFunc) Parser
     }.parse;
 }
 
-test "delimited" {
+test delimited {
     const target = "<h1>";
     const result = try delimited(tag("<"), take_until(">"), tag(">"))(target);
     try std.testing.expectEqualStrings("h1", result.result);
 }
 
+/// Discard elements recognized by the parser `first` and return the next element recognized by the parser `second` as the result.
 pub fn preceded(first: ParserFunc, second: ParserFunc) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {

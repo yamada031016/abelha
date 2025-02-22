@@ -1,9 +1,12 @@
+//! This module provides combinators for bytes strings.
 const std = @import("std");
 const ab = @import("../parser.zig");
 const ParserFunc = ab.ParserFunc;
 const IResult = ab.IResult;
 const ParseError = ab.ParseError;
 
+/// Return `input[0..N]`, a slice of N bytes from the beginning of the input.
+/// Return `ParseError.InvalidFormat` when the size of input is less than N.
 pub fn take(cnt: usize) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {
@@ -15,6 +18,10 @@ pub fn take(cnt: usize) ParserFunc {
     }.parse;
 }
 
+/// Recognizes the pattern specified by the `needle` argument
+/// The input is compared to see if it matches the pattern and the matching portion is returned.
+/// If the size of the input is less than the size of the pattern, `ParseError.NeedleTooShort` is returned.
+/// `ParseError.NotFound` is returned when no pattern is found.
 pub fn tag(needle: []const u8) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {
@@ -34,6 +41,7 @@ pub fn tag(needle: []const u8) ParserFunc {
     }.parse;
 }
 
+/// Returns a sequence of bytes as slices until the specified pattern is found.
 pub fn take_until(end: []const u8) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {
@@ -47,6 +55,7 @@ pub fn take_until(end: []const u8) ParserFunc {
     }.parse;
 }
 
+/// Returns a sequence of bytes as a slice until the specified character is found
 pub fn is_not(needle: []const u8) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {
