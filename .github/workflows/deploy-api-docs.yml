@@ -1,0 +1,33 @@
+name: Deploy API Reference to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'src/**'  # srcディレクトリ内の変更時のみ実行
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Zig
+        uses: korandoru/setup-zig@v1
+        with:
+          zig-version: master  # 必要に応じてバージョンを変更
+
+      - name: Build Documentation
+        run: zig build docs
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: zig-out/docs
+          keep_files: false  # gh-pagesブランチの古いファイルを削除
+          commit_message: "Deploy docs from master"
