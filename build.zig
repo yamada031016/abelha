@@ -43,16 +43,8 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_exe_unit_tests.step);
 
-    // const lib = b.addStaticLibrary(.{
-    //     .name = "abelha",
-    //     .root_source_file = b.path("src/parser/parser.zig"),
-    //     .target = target,
-    //     .optimize = optimize,
-    // });
-    // b.installArtifact(lib);
-
     const docs_obj = b.addObject(.{
-        .name = "zap", // name doesn't seem to matter
+        .name = "abelha",
         .root_source_file = b.path("src/parser/parser.zig"),
         .target = target,
         .optimize = .Debug,

@@ -106,7 +106,7 @@ pub fn separated_list1(T: type, sep: anytype, parser: anytype) fn ([]const u8) a
                 }
             } else |e| {
                 if (array.getLastOrNull()) |_| {
-                    return ParseResult([]const []const u8){ .rest = rest_input, .result = try array.toOwnedSlice() };
+                    return ParseResult([]const T){ .rest = rest_input, .result = try array.toOwnedSlice() };
                 } else {
                     return e;
                 }

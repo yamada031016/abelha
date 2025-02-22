@@ -5,6 +5,7 @@ pub const character = @import("character/character.zig");
 pub const bytes = @import("bytes/bytes.zig");
 pub const multi = @import("multi/multi.zig");
 pub const combinator = @import("combinator/combinator.zig");
+pub const suquence = @import("sequence/sequence.zig");
 
 /// Generic Result type.
 pub fn ParseResult(T: anytype) type {

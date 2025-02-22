@@ -28,9 +28,7 @@ jobs:
         uses: goto-bus-stop/setup-zig@v2
 
       - name: Generate docs
-        run: |
-          cd .
-          zig build docs
+        run: zig build docs
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
