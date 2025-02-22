@@ -114,3 +114,12 @@ pub fn eof(input: []const u8) !IResult {
         return ParseError.NotFound;
     }
 }
+
+pub fn peek(parser: ParserFunc) ParserFunc {
+    return struct {
+        fn parse(input: []const u8) !IResult {
+            const result = try parser(input);
+            return IResult{ .rest = input, .result = result.result };
+        }
+    }.parse;
+}
