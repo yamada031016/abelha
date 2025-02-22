@@ -7,27 +7,51 @@ on:
     paths:
       - 'src/**'
 
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#
+#     steps:
+#       - name: Checkout Repository
+#         uses: actions/checkout@v4
+#
+#       - name: Install Zig
+#         uses: korandoru/setup-zig@v1
+#         with:
+#           zig-version: master
+#
+#       - name: Build Documentation
+#         run: zig build docs
+#
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Install Zig
-        uses: korandoru/setup-zig@v1
+      - name: Check out repository
+        uses: actions/checkout@v3
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+      - name: Generate docs
+        run: |
+          zig build docs
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
         with:
-          zig-version: master
+          path: zig-out/docs/
 
-      - name: Build Documentation
-        run: zig build docs
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
 
+    steps:
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir: zig-out
+          publish_dir: zig-out/docs
           keep_files: false
           commit_message: "Deploy docs from master"

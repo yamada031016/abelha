@@ -23,10 +23,10 @@ pub const ParseError = error{
     NeedleTooShort,
 };
 
-/// Basic Result type of parser provided by Abelha
+/// Basic Result type of parser
 pub const IResult = ParseResult([]const u8);
 
-/// Basic function signature of parser provided by Abelha
+/// Basic function signature of parser
 pub const ParserFunc = fn ([]const u8) anyerror!IResult;
 
 test {
