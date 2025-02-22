@@ -57,6 +57,13 @@ jobs:
           zig-version: master
       - name: Build Documentation
         run: zig build docs
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: zig-out/docs/
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
