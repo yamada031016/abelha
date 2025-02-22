@@ -1,3 +1,4 @@
+//! This module provides combinators applying their child parser in turn
 const std = @import("std");
 const ab = @import("../parser.zig");
 const ParseResult = ab.ParseResult;
