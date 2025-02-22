@@ -138,3 +138,18 @@ pub fn not(expect_fail_parser: ParserFunc) ParserFunc {
         }
     }.parse;
 }
+
+pub fn opt(opt_parser: ParserFunc) ParserFunc {
+    return struct {
+        fn parse(input: []const u8) !IResult {
+            const result = opt_parser(input);
+            if (result) |res| {
+                return IResult{ .rest = res.rest, .result = res.result };
+            } else |e| {
+                switch (e) {
+                    else => return IResult{ .rest = input, .result = "" },
+                }
+            }
+        }
+    }.parse;
+}
