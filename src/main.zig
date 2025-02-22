@@ -22,6 +22,7 @@ fn hexColor(input: []const u8) !ParseResult([]const u8) {
     return res;
 }
 
+// Example of parsing color codes using Abelha
 pub fn main() !void {
     const text = "#1A2B3C";
     const result = try hexColor(text);
