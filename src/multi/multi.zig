@@ -1,6 +1,6 @@
 //! This module provides combinators applying their child parser multiple times.
 const std = @import("std");
-const ab = @import("../parser.zig");
+const ab = @import("../abelha.zig");
 const ParserFunc = ab.ParserFunc;
 const IResult = ab.IResult;
 const ParseError = ab.ParseError;

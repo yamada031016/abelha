@@ -1,6 +1,6 @@
 //! This module provides Choice combinators.
 const std = @import("std");
-const ab = @import("../parser.zig");
+const ab = @import("../abelha.zig");
 const ParseResult = ab.ParseResult;
 const ParseError = ab.ParseError;
 
