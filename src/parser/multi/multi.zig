@@ -1,39 +1,13 @@
 const std = @import("std");
-const ab = @import("parser.zig");
-const ParseResult = ab.ParseResult;
+const ab = @import("../parser.zig");
 const ParserFunc = ab.ParserFunc;
 const IResult = ab.IResult;
 const ParseError = ab.ParseError;
+const ParseResult = ab.ParseResult;
 
-const char = ab.basic.char;
-const tag = ab.basic.tag;
-const take_until = ab.basic.take_until;
-
-pub fn alt(T: type, parser_tupple: anytype) fn ([]const u8) anyerror!ParseResult(T) {
-    return struct {
-        fn parse(input: []const u8) !ParseResult(T) {
-            inline for (parser_tupple) |parser| {
-                const result = parser(input);
-                if (result) |res| {
-                    return ParseResult(T){ .rest = res.rest, .result = res.result };
-                } else |e| {
-                    // ignore error
-                    switch (e) {
-                        else => {},
-                    }
-                }
-            } else {
-                return ParseError.NotFound;
-            }
-        }
-    }.parse;
-}
-
-test "alt" {
-    const target = "*italic*\n";
-    const result = try alt([]const u8, .{ char('\n'), tag("**"), take_until("</p>"), take_until("\n"), char('#') })(target);
-    try std.testing.expectEqualStrings("*italic*", result.result);
-}
+const char = ab.character.char;
+const tag = ab.bytes.tag;
+const take_until = ab.bytes.take_until;
 
 pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ParseResult([]const []const u8) {
     return struct {
@@ -107,49 +81,37 @@ pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) anyerror!P
     }.parse;
 }
 
-pub fn eof(input: []const u8) !IResult {
-    if (input.len == 0) {
-        return IResult{ .rest = "", .result = "" };
-    } else {
-        return ParseError.NotFound;
-    }
-}
-
-pub fn peek(parser: ParserFunc) ParserFunc {
+pub fn separated_list1(T: type, seq: anytype, parser: anytype) fn ([]const u8) anyerror!ParseResult([]const T) {
     return struct {
-        fn parse(input: []const u8) !IResult {
-            const result = try parser(input);
-            return IResult{ .rest = input, .result = result.result };
-        }
-    }.parse;
-}
-
-pub fn not(expect_fail_parser: ParserFunc) ParserFunc {
-    return struct {
-        fn parse(input: []const u8) !IResult {
-            const result = expect_fail_parser(input);
-            if (result) |_| {
-                return ParseError.NotFound;
+        fn parse(input: []const u8) !ParseResult([]const T) {
+            var array = std.ArrayList(T).init(std.heap.page_allocator);
+            var rest_input = input;
+            while (parser(rest_input)) |result| {
+                try array.append(result.result);
+                const res = seq(result.rest) catch {
+                    std.log.debug("separater at {s} failed.\n", .{result.rest});
+                    return ParseResult([]const T){ .rest = result.rest, .result = array.items };
+                };
+                if (res.rest.len == 0) {
+                    std.log.debug("input is fully consumed.\n", .{});
+                    return ParseResult([]const T){ .rest = rest_input, .result = try array.toOwnedSlice() };
+                } else {
+                    rest_input = res.rest;
+                }
             } else |e| {
-                switch (e) {
-                    else => return IResult{ .rest = input, .result = "" },
+                if (array.getLastOrNull()) |_| {
+                    return ParseResult([]const []const u8){ .rest = rest_input, .result = try array.toOwnedSlice() };
+                } else {
+                    return e;
                 }
             }
         }
     }.parse;
 }
 
-pub fn opt(opt_parser: ParserFunc) ParserFunc {
-    return struct {
-        fn parse(input: []const u8) !IResult {
-            const result = opt_parser(input);
-            if (result) |res| {
-                return IResult{ .rest = res.rest, .result = res.result };
-            } else |e| {
-                switch (e) {
-                    else => return IResult{ .rest = input, .result = "" },
-                }
-            }
-        }
-    }.parse;
+test "separated_list1" {
+    const text = "abc|abc|abc";
+    const result = try separated_list1([]const u8, tag("|"), tag("abc"))(text);
+    const answer = [_][]const u8{ "abc", "abc", "abc" };
+    try std.testing.expectEqualSlices([]const u8, &answer, result.result);
 }

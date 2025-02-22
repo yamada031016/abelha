@@ -1,5 +1,5 @@
 const std = @import("std");
-const ab = @import("parser.zig");
+const ab = @import("../parser.zig");
 const ParserFunc = ab.ParserFunc;
 const IResult = ab.IResult;
 const ParseError = ab.ParseError;
@@ -15,45 +15,18 @@ pub fn take(cnt: usize) ParserFunc {
     }.parse;
 }
 
-pub fn char(character: u8) ParserFunc {
-    return struct {
-        fn parse(input: []const u8) !IResult {
-            switch (input.len) {
-                0 => {},
-                1 => {
-                    if (input[0] == character) {
-                        return IResult{ .rest = "", .result = input };
-                    }
-                },
-                else => {
-                    if (input[0] == character) {
-                        return IResult{ .rest = input[1..], .result = input[0..1] };
-                    }
-                },
-            }
-            return ParseError.NotFound;
-        }
-    }.parse;
-}
-
-test "parse character" {
-    const target = "#hogehoge";
-    const result = try char('#')(target);
-    try std.testing.expectEqualStrings("#", result.result);
-}
-
 pub fn tag(needle: []const u8) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {
             if (input.len < needle.len) {
-                std.log.err("\ntarget string: {s}(len: {})\nneedle: {s}(len: {})\n", .{ input, input.len, needle, needle.len });
+                std.log.debug("\ntarget string: {s}(len: {})\nneedle: {s}(len: {})\n", .{ input, input.len, needle, needle.len });
                 return ParseError.NeedleTooShort;
             } else {
                 if (std.mem.eql(u8, input[0..needle.len], needle)) {
                     std.log.debug("successed.\ntarget string: {s}(len: {})\nneedle: {s}(len: {})\n", .{ input, input.len, needle, needle.len });
                     return IResult{ .rest = input[needle.len..], .result = needle };
                 } else {
-                    std.log.err("\ntarget string: {s}\nneedle: {s}\n", .{ input, needle });
+                    std.log.debug("\ntarget string: {s}\nneedle: {s}\n", .{ input, needle });
                     return ParseError.NotFound;
                 }
             }
@@ -89,26 +62,6 @@ pub fn is_not(needle: []const u8) ParserFunc {
                 }
             }
             return IResult{ .rest = "", .result = input };
-            // return ParseError.NotFound;
-
-            // var min_pos: ?usize = null;
-            // for (0..needle.len) |i| {
-            //     if (std.mem.indexOf(u8, input, needle[i..i])) |_| {
-            //         if (min_pos) |min| {
-            //             if (i < min) {
-            //                 min_pos = i;
-            //             }
-            //         } else {
-            //             min_pos = i;
-            //         }
-            //     }
-            // }
-            //
-            // if (min_pos) |min| {
-            //     return IResult{ .rest = input[min..], .result = input[0..min] };
-            // } else {
-            //     return IResult{ .rest = "", .result = input };
-            // }
         }
     }.parse;
 }
