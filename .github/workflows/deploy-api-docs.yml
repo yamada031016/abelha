@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - 'src/**'  # srcディレクトリ内の変更時のみ実行
+      - 'src/**'
 
 jobs:
   deploy:
@@ -18,7 +18,7 @@ jobs:
       - name: Install Zig
         uses: korandoru/setup-zig@v1
         with:
-          zig-version: master  # 必要に応じてバージョンを変更
+          zig-version: master
 
       - name: Build Documentation
         run: zig build docs
@@ -29,5 +29,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: zig-out/docs
-          keep_files: false  # gh-pagesブランチの古いファイルを削除
+          keep_files: false
           commit_message: "Deploy docs from master"

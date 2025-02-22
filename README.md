@@ -17,7 +17,7 @@
 
 To use Abelha in your Zig project, add the following to your `build.zig`:
 ```sh
-git fetch --save=abelha https://github.com/yamada031016/abelha/archive/refs/heads/master.tar.gz
+zig fetch --save=abelha https://github.com/yamada031016/abelha/archive/refs/heads/master.tar.gz
 ```
 
 ```zig
