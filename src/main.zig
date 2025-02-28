@@ -31,7 +31,9 @@ test {
 
 // Example of parsing color codes using Abelha
 pub fn main() !void {
-    const text = "#1A2B3C";
-    const result = try hexColor(text);
+    // const text = "#1A2B3C";
+    const text = "aaaaccc";
+    // const result = try hexColor(text);
+    const result = try ab.bytes.take_until("b")(text);
     std.debug.print("{any}\n", .{result.result});
 }

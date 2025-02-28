@@ -9,13 +9,15 @@ const ParseError = ab.ParseError;
 /// Return `ParseError.InvalidFormat` when the size of input is less than N.
 pub fn take(cnt: usize) ParserFunc {
     return struct {
-        fn parse(input: []const u8) !IResult {
+        fn take(input: []const u8) !IResult {
+            errdefer |e| ab.panic(e, .{ @src().fn_name, cnt, input });
+
             if (input.len < cnt) {
-                return ParseError.InvalidFormat;
+                return error.InputTooShort;
             }
             return IResult{ .rest = input[cnt..], .result = input[0..cnt] };
         }
-    }.parse;
+    }.take;
 }
 
 /// Recognizes the pattern specified by the `needle` argument
@@ -24,35 +26,39 @@ pub fn take(cnt: usize) ParserFunc {
 /// `ParseError.NotFound` is returned when no pattern is found.
 pub fn tag(needle: []const u8) ParserFunc {
     return struct {
-        fn parse(input: []const u8) !IResult {
+        fn tag(input: []const u8) !IResult {
+            errdefer |e| ab.panic(e, .{ @src().fn_name, needle, input });
+
             if (input.len < needle.len) {
                 std.log.debug("\ntarget string: {s}(len: {})\nneedle: {s}(len: {})\n", .{ input, input.len, needle, needle.len });
-                return ParseError.NeedleTooShort;
+                return error.NeedleTooLong;
             } else {
                 if (std.mem.eql(u8, input[0..needle.len], needle)) {
                     std.log.debug("successed.\ntarget string: {s}(len: {})\nneedle: {s}(len: {})\n", .{ input, input.len, needle, needle.len });
                     return IResult{ .rest = input[needle.len..], .result = needle };
                 } else {
                     std.log.debug("\ntarget string: {s}\nneedle: {s}\n", .{ input, needle });
-                    return ParseError.NotFound;
+                    return error.NotFound;
                 }
             }
         }
-    }.parse;
+    }.tag;
 }
 
 /// Returns a sequence of bytes as slices until the specified pattern is found.
 pub fn take_until(end: []const u8) ParserFunc {
     return struct {
-        fn parse(input: []const u8) !IResult {
+        fn take_until(input: []const u8) !IResult {
+            errdefer |e| ab.panic(e, .{ @src().fn_name, end, input });
+
             const index = std.mem.indexOf(u8, input, end);
             if (index) |idx| {
                 return IResult{ .rest = input[idx..], .result = input[0..idx] };
             } else {
-                return ParseError.NotFound;
+                return error.NotFound;
             }
         }
-    }.parse;
+    }.take_until;
 }
 
 /// Returns a sequence of bytes as a slice until the specified character is found
@@ -60,7 +66,7 @@ pub fn is_not(needle: []const u8) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {
             if (input.len == 0) {
-                return ParseError.InputTooShort;
+                return error.InputTooShort;
             }
 
             for (input, 0..) |c, i| {

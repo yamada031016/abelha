@@ -17,14 +17,72 @@ pub fn ParseResult(T: anytype) type {
     };
 }
 
+pub fn ResultType(T: anytype) type {
+    return struct {
+        []const u8,
+        T,
+    };
+}
+
+pub fn Result(T: anytype) type {
+    return union(enum) {
+        Ok: ResultType(T),
+        Err: struct {
+            pos: usize,
+            message: []const u8,
+        },
+    };
+}
+
 /// Errors that occur during parsing
 pub const ParseError = error{
     UnexpectedEndOfInput,
     InvalidFormat,
+    InvalidCharacter,
     NotFound,
     InputTooShort,
-    NeedleTooShort,
+    NeedleTooLong,
+    UnknownKeyword,
 };
+
+// args[0]: parse function name
+// args[1]: parse function arguments
+// args[2]: parse function input
+// args[3..]: optional infomation
+pub inline fn panic(err: anyerror, args: anytype) noreturn {
+    switch (err) {
+        error.InputTooShort => std.debug.panic(
+            \\{s}({}) {s}
+            \\found: {s}
+            \\       ^ -- Expected at least {}, but found only {}.
+        , .{ args[0], args[1], @errorName(err), args[2], args[1], args[2].len }),
+        error.NeedleTooLong => std.debug.panic(
+            \\
+            \\[error] {s}("{s}") {s}
+            \\found: {s}
+            \\       ^ -- Expected at most {}, but needle requires {}.
+        , .{ args[0], args[1], @errorName(err), args[2], args[2].len, args[1].len }),
+        error.NotFound => std.debug.panic(
+            \\
+            \\[error] {s}("{s}") {s}
+            \\┌─
+            \\│ {s}
+            \\  ^ -- Expected "{s}", but found "{s}".
+        , .{ args[0], args[1], @errorName(err), args[2], args[1], args[2] }),
+        else => {
+            switch (args.len) {
+                0 => std.debug.panic(
+                    \\ parse failed.
+                , .{}),
+                3 => std.debug.panic(
+                    \\{s}({}) {s}
+                    \\found: {s}
+                , .{ args[0], args[1], @errorName(err), args[2] }),
+                else => std.debug.panic("much panic arguement: {any}", .{args}),
+            }
+        },
+    }
+}
 
 /// Basic Result type of parser
 pub const IResult = ParseResult([]const u8);
