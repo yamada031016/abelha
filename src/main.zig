@@ -1,5 +1,5 @@
 const std = @import("std");
-const ab = @import("parser/parser.zig");
+const ab = @import("abelha.zig");
 
 const ParseResult = ab.ParseResult;
 const tag = ab.bytes.tag;
@@ -22,9 +22,16 @@ fn hexColor(input: []const u8) !ParseResult([]const u8) {
     return res;
 }
 
+test {
+    const text = "#1A2B3C";
+    const result = try hexColor(text);
+    const answer = [_]u8{ 0x1a, 0x2b, 0x3c };
+    try std.testing.expectEqualSlices(u8, &answer, result.result);
+}
+
 // Example of parsing color codes using Abelha
 pub fn main() !void {
     const text = "#1A2B3C";
     const result = try hexColor(text);
-    std.debug.print("{x}\n", .{result.result});
+    std.debug.print("{any}\n", .{result.result});
 }

@@ -28,7 +28,7 @@ exe.addModule("abelha", abelha.module("abelha"));
 Or clone it directly:
 
 ```sh
-git clone https://github.com/your-repo/abelha.git
+git clone https://github.com/yamada031016/abelha.git
 ```
 
 ---
@@ -39,7 +39,7 @@ Here’s a simple example of parsing color code using Abelha.
 
 ```zig
 const std = @import("std");
-const ab = @import("parser/parser.zig");
+const ab = @import("abelha.zig");
 
 const ParseResult = ab.ParseResult;
 const tag = ab.bytes.tag;
