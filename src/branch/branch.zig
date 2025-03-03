@@ -12,11 +12,10 @@ const take_until = ab.bytes.take_until;
 /// Returns the first successful parse result, or `ParseError.NotFound` if all fail
 pub fn alt(T: type, parser_tuple: anytype) fn ([]const u8) anyerror!ParseResult(T) {
     return struct {
-        fn parse(input: []const u8) !ParseResult(T) {
+        fn alt(input: []const u8) !ParseResult(T) {
             inline for (parser_tuple) |parser| {
-                const result = parser(input);
-                if (result) |res| {
-                    return ParseResult(T){ .rest = res.rest, .result = res.result };
+                if (parser(input)) |result| {
+                    return ParseResult(T){ .rest = result.rest, .result = result.result };
                 } else |e| {
                     // ignore error
                     switch (e) {
@@ -27,7 +26,7 @@ pub fn alt(T: type, parser_tuple: anytype) fn ([]const u8) anyerror!ParseResult(
                 return ParseError.NotFound;
             }
         }
-    }.parse;
+    }.alt;
 }
 
 test alt {

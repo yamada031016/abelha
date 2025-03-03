@@ -8,7 +8,7 @@ pub fn build(b: *std.Build) void {
         .name = "abelha",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
-        .optimize = optimize,
+        .optimize = .Debug,
     });
 
     const abelha_mod = b.addModule("abelha", .{

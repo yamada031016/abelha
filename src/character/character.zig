@@ -11,7 +11,9 @@ const many1 = ab.multi.many1;
 /// Recognizes specified characters
 pub fn char(character: u8) ParserFunc {
     return struct {
-        fn parse(input: []const u8) !IResult {
+        fn char(input: []const u8) !IResult {
+            errdefer |e| ab.panic(e, .{ @src().fn_name, &[_]u8{character}, input });
+
             switch (input.len) {
                 0 => {},
                 1 => {
@@ -25,9 +27,9 @@ pub fn char(character: u8) ParserFunc {
                     }
                 },
             }
-            return ParseError.NotFound;
+            return error.NotFound;
         }
-    }.parse;
+    }.char;
 }
 
 test char {
@@ -38,14 +40,16 @@ test char {
 
 /// Recognizes one or more specified hexadecimal numbers
 pub fn hexDigit1(input: []const u8) !IResult {
+    errdefer |e| ab.panic(e, .{ @src().fn_name, .{}, input });
+
     if (input.len < 1) {
-        return ParseError.InputTooShort;
+        return error.InputTooShort;
     }
     const hex = input[0];
     if (std.ascii.isHex(hex)) {
         return IResult{ .rest = input[1..], .result = input[0..1] };
     } else {
-        return ParseError.InvalidFormat;
+        return error.InvalidFormat;
     }
 }
 
@@ -64,7 +68,7 @@ pub fn line_ending(input: []const u8) !IResult {
         return IResult{ .rest = result.rest, .result = result.result };
     } else |e| {
         switch (e) {
-            ParseError.NotFound => {
+            error.NotFound => {
                 const result = try tag("\r\n")(input);
                 return IResult{ .rest = result.rest, .result = result.result };
             },

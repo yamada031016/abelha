@@ -6,7 +6,7 @@ const IResult = ab.IResult;
 const ParseError = ab.ParseError;
 
 /// Return `input[0..N]`, a slice of N bytes from the beginning of the input.
-/// Return `ParseError.InvalidFormat` when the size of input is less than N.
+/// Return `error.InvalidFormat` when the size of input is less than N.
 pub fn take(cnt: usize) ParserFunc {
     return struct {
         fn take(input: []const u8) !IResult {
@@ -22,8 +22,8 @@ pub fn take(cnt: usize) ParserFunc {
 
 /// Recognizes the pattern specified by the `needle` argument
 /// The input is compared to see if it matches the pattern and the matching portion is returned.
-/// If the size of the input is less than the size of the pattern, `ParseError.NeedleTooShort` is returned.
-/// `ParseError.NotFound` is returned when no pattern is found.
+/// If the size of the input is less than the size of the pattern, `error.NeedleTooShort` is returned.
+/// `error.NotFound` is returned when no pattern is found.
 pub fn tag(needle: []const u8) ParserFunc {
     return struct {
         fn tag(input: []const u8) !IResult {
@@ -64,7 +64,9 @@ pub fn take_until(end: []const u8) ParserFunc {
 /// Returns a sequence of bytes as a slice until the specified character is found
 pub fn is_not(needle: []const u8) ParserFunc {
     return struct {
-        fn parse(input: []const u8) !IResult {
+        fn is_not(input: []const u8) !IResult {
+            errdefer |e| ab.panic(e, .{ @src().fn_name, needle, input });
+
             if (input.len == 0) {
                 return error.InputTooShort;
             }
@@ -78,5 +80,39 @@ pub fn is_not(needle: []const u8) ParserFunc {
             }
             return IResult{ .rest = "", .result = input };
         }
-    }.parse;
+    }.is_not;
+}
+
+/// Returns a sequence of bytes as a slice until the specified character is found
+pub fn escaped(normal: ParserFunc, escapable: ParserFunc) ParserFunc {
+    return struct {
+        fn escaped(input: []const u8) !IResult {
+            // errdefer |e| ab.panic(e, .{ @src().fn_name, .{ normal, escapable }, input });
+
+            const result = try normal(input);
+
+            var escaped_str = std.ArrayList(u8).init(std.heap.page_allocator);
+            try escaped_str.appendSlice(result.result);
+            var rest = result.rest;
+
+            while (escapable(rest)) |_result| {
+                try escaped_str.appendSlice(_result.result);
+                const res = try normal(_result.rest);
+                try escaped_str.appendSlice(res.result);
+                rest = res.rest;
+            } else |_| {}
+
+            return IResult{ .rest = rest, .result = try escaped_str.toOwnedSlice() };
+        }
+    }.escaped;
+}
+
+test escaped {
+    const target = "ab\nab";
+    var result = try escaped(tag("ab"), ab.character.char('\n'))(target);
+    try std.testing.expectEqualStrings("ab\nab", result.result);
+
+    const target2 = "abab";
+    result = try escaped(tag("ab"), ab.character.char('\n'))(target2);
+    try std.testing.expectEqualStrings("ab", result.result);
 }

@@ -49,38 +49,92 @@ pub const ParseError = error{
 // args[1]: parse function arguments
 // args[2]: parse function input
 // args[3..]: optional infomation
-pub inline fn panic(err: anyerror, args: anytype) noreturn {
-    switch (err) {
-        error.InputTooShort => std.debug.panic(
-            \\{s}({}) {s}
-            \\found: {s}
-            \\       ^ -- Expected at least {}, but found only {}.
-        , .{ args[0], args[1], @errorName(err), args[2], args[1], args[2].len }),
-        error.NeedleTooLong => std.debug.panic(
-            \\
-            \\[error] {s}("{s}") {s}
-            \\found: {s}
-            \\       ^ -- Expected at most {}, but needle requires {}.
-        , .{ args[0], args[1], @errorName(err), args[2], args[2].len, args[1].len }),
-        error.NotFound => std.debug.panic(
-            \\
-            \\[error] {s}("{s}") {s}
-            \\┌─
-            \\│ {s}
-            \\  ^ -- Expected "{s}", but found "{s}".
-        , .{ args[0], args[1], @errorName(err), args[2], args[1], args[2] }),
-        else => {
-            switch (args.len) {
-                0 => std.debug.panic(
-                    \\ parse failed.
-                , .{}),
-                3 => std.debug.panic(
-                    \\{s}({}) {s}
-                    \\found: {s}
-                , .{ args[0], args[1], @errorName(err), args[2] }),
-                else => std.debug.panic("much panic arguement: {any}", .{args}),
-            }
-        },
+pub inline fn panic(err: anyerror, args: anytype) void {
+    if (@import("builtin").mode == .Debug or @import("builtin").mode == .ReleaseSafe) {
+        switch (err) {
+            error.InputTooShort => std.debug.print(
+                \\{s}({}) {s}
+                \\found: {s}
+                \\       ^ -- Expected at least {}, but found only {}.
+            , .{ args[0], args[1], @errorName(err), args[2], args[1], args[2].len }),
+            error.NeedleTooLong => std.debug.print(
+                \\
+                \\[error] {s}("{s}") {s}
+                \\found: {s}
+                \\       ^ -- Expected at most {}, but needle requires {}.
+            , .{ args[0], args[1], @errorName(err), args[2], args[2].len, args[1].len }),
+            error.NotFound => {
+                switch (@typeInfo(@TypeOf(args[1]))) {
+                    .Pointer => |pointer| {
+                        const str = args[1];
+                        switch (@typeInfo(pointer.child)) {
+                            .Array => |arr| {
+                                if (@typeInfo(arr.child) == .Int) {
+                                    // []const u8
+                                    std.debug.print(
+                                        \\
+                                        \\[error] {s}("{s}") {s}
+                                        \\┌─
+                                        \\│ {s}
+                                        \\  ^ -- Expected "{s}", but found "{s}".
+                                    , .{ args[0], str, @errorName(err), args[2], str, args[2] });
+                                }
+                            },
+                            .Int => std.debug.print(
+                                \\
+                                \\[error] {s}("{s}") {s}
+                                \\┌─
+                                \\│ {s}
+                                \\  ^ -- Expected "{s}", but found "{s}".
+                            , .{ args[0], str, @errorName(err), args[2], str, args[2] }),
+                            else => @panic("parser function arguments have unsupported type of pointer."),
+                        }
+                    },
+                    .Struct => |s| {
+                        if (s.is_tuple) {
+                            const parse_args = args[1];
+                            if (parse_args.len == 0) {
+                                std.debug.print(
+                                    \\
+                                    \\[error] {s} {s}
+                                    \\┌─
+                                    \\│ {s}
+                                    \\  ^
+                                , .{ args[0], @errorName(err), args[2] });
+                            }
+                        }
+                        std.debug.print(
+                            \\
+                            \\[error] {s}({any}) {s}
+                            \\┌─
+                            \\│ {s}
+                            \\  ^
+                        , .{ args[0], args[1], @errorName(err), args[2] });
+                    },
+                    else => {
+                        std.debug.print(
+                            \\
+                            \\[error] {s}({}) {s}
+                            \\┌─
+                            \\│ {s}
+                            \\  ^ -- Expected "{s}", but found "{s}".
+                        , .{ args[0], args[1], @errorName(err), args[2], args[1], args[2] });
+                    },
+                }
+            },
+            else => {
+                switch (args.len) {
+                    0 => std.debug.print(
+                        \\ parse failed.
+                    , .{}),
+                    3 => std.debug.print(
+                        \\{s}({}) {s}
+                        \\found: {s}
+                    , .{ args[0], args[1], @errorName(err), args[2] }),
+                    else => std.debug.print("much panic arguement: {any}", .{args}),
+                }
+            },
+        }
     }
 }
 

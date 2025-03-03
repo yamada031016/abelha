@@ -13,13 +13,12 @@ fn parseHex(input: []const u8) !ParseResult(u8) {
 }
 
 fn hexColor(input: []const u8) !ParseResult([]const u8) {
-    const result = try tag("#")(input);
-    const res = try separated_list1(
+    const result = try ab.sequence.preceded(tag("#"), separated_list1(
         u8,
         tag(""),
         parseHex,
-    )(result.rest);
-    return res;
+    ))(input);
+    return result;
 }
 
 test {
@@ -34,6 +33,6 @@ pub fn main() !void {
     // const text = "#1A2B3C";
     const text = "aaaaccc";
     // const result = try hexColor(text);
-    const result = try ab.bytes.take_until("b")(text);
+    const result = try ab.branch.alt([]const u8, .{ hexColor, tag("aa") })(text);
     std.debug.print("{any}\n", .{result.result});
 }
