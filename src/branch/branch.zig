@@ -2,7 +2,6 @@
 const std = @import("std");
 const ab = @import("../abelha.zig");
 const ParseResult = ab.ParseResult;
-const ParseError = ab.ParseError;
 
 const char = ab.character.char;
 const tag = ab.bytes.tag;
@@ -23,7 +22,7 @@ pub fn alt(T: type, parser_tuple: anytype) fn ([]const u8) anyerror!ParseResult(
                     }
                 }
             } else {
-                return ParseError.NotFound;
+                return error.NotFound;
             }
         }
     }.alt;
@@ -36,28 +35,32 @@ test alt {
     try std.testing.expectEqualStrings("*italic*", result.result);
 }
 
-// pub fn permutation(T: type, parser_tupple: anytype) fn ([]const u8) anyerror!ParseResult(T) {
-//     return struct {
-//         fn parse(input: []const u8) !ParseResult(T) {
-//             inline for (parser_tupple) |parser| {
-//                 const result = parser(input);
-//                 if (result) |res| {
-//                     return ParseResult(T){ .rest = res.rest, .result = res.result };
-//                 } else |e| {
-//                     // ignore error
-//                     switch (e) {
-//                         else => {},
-//                     }
-//                 }
-//             } else {
-//                 return ParseError.NotFound;
-//             }
-//         }
-//     }.parse;
-// }
-//
-// test "permutation" {
-//     const target = "*italic*\n";
-//     const result = try alt([]const u8, .{ char('\n'), tag("**"), take_until("</p>"), take_until("\n"), char('#') })(target);
-//     try std.testing.expectEqualStrings("*italic*", result.result);
-// }
+/// The parser groups of arguments are applied in order, and if all do not result in success, an error is returned.
+pub fn permutation(T: type, parser_tupple: anytype) fn ([]const u8) anyerror!ParseResult([]const T) {
+    return struct {
+        fn permutation(input: []const u8) !ParseResult([]const T) {
+            errdefer |e| ab.panic(e, .{ @src().fn_name, "", input });
+
+            var array = std.ArrayList([]const u8).init(std.heap.page_allocator);
+            var rest = input;
+            inline for (parser_tupple) |parser| {
+                const _result = try parser(rest);
+                try array.append(_result.result);
+                rest = _result.rest;
+            }
+
+            const result = try array.toOwnedSlice();
+            if (result.len == 0) {
+                return error.NotFound;
+            }
+
+            return ParseResult([]const T){ .rest = rest, .result = result };
+        }
+    }.permutation;
+}
+
+test permutation {
+    const target = "*italic*\n";
+    const result = try permutation([]const u8, .{ tag("*"), take_until("*"), char('*') })(target);
+    try std.testing.expectEqualStrings("*italic*", try std.mem.concat(std.heap.page_allocator, u8, result.result));
+}
