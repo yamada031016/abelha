@@ -96,6 +96,12 @@ pub inline fn report(err: anyerror, args: anytype) void {
                             \\       ^ -- Expected at least {}, but found only {}.
                         , .{ args[0], args[1], @errorName(err), args[2], args[1].len, args[2].len });
                     },
+                    ParserArgType.Unit => std.debug.print(
+                        \\
+                        \\{s}() {s}
+                        \\found: {s}
+                        \\       ^
+                    , .{ args[0], @errorName(err), args[2] }),
                     ParserArgType.ParserFunc => {
                         std.debug.print(
                             \\
@@ -258,6 +264,22 @@ pub const IResult = ParseResult([]const u8);
 
 /// Basic function signature of parser
 pub const ParserFunc = fn ([]const u8) anyerror!IResult;
+
+// helper function to generate **1() parser, such as alpha1.
+pub fn prohibitEmptyResult(name: []const u8, parser: ParserFunc, input: []const u8) !IResult {
+    errdefer |e| report(e, .{ name, .{}, input });
+
+    if (input.len == 0) {
+        return error.InputTooShort;
+    }
+
+    const result = try parser(input);
+    if (result.result.len == 0) {
+        return error.EmptyMatched;
+    }
+
+    return result;
+}
 
 test {
     std.testing.refAllDecls(@This());
