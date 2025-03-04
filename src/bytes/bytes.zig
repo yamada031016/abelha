@@ -60,29 +60,6 @@ pub fn take_until(end: []const u8) ParserFunc {
         }
     }.take_until;
 }
-
-/// Returns a sequence of bytes as a slice until the specified character is found
-pub fn is_not(needle: []const u8) ParserFunc {
-    return struct {
-        fn is_not(input: []const u8) !IResult {
-            errdefer |e| ab.panic(e, .{ @src().fn_name, needle, input });
-
-            if (input.len == 0) {
-                return error.InputTooShort;
-            }
-
-            for (input, 0..) |c, i| {
-                for (needle) |n| {
-                    if (c == n) {
-                        return IResult{ .rest = input[i..], .result = input[0..i] };
-                    }
-                }
-            }
-            return IResult{ .rest = "", .result = input };
-        }
-    }.is_not;
-}
-
 /// Matches a byte string with escaped characters.
 pub fn escaped(normal: ParserFunc, escapable: ParserFunc) ParserFunc {
     return struct {
@@ -147,5 +124,37 @@ test is_a {
 
     const target2 = "DEBACFG";
     const result2 = try is_a("1234567890ABCDEF")(target2);
+    try std.testing.expectEqualStrings("DEBACF", result2.result);
+}
+
+/// Returns a sequence of bytes as a slice until the specified character is found
+pub fn is_not(needle: []const u8) ParserFunc {
+    return struct {
+        fn is_not(input: []const u8) !IResult {
+            errdefer |e| ab.panic(e, .{ @src().fn_name, needle, input });
+
+            if (input.len == 0) {
+                return error.InputTooShort;
+            }
+
+            for (input, 0..) |c, i| {
+                for (needle) |n| {
+                    if (c == n) {
+                        return IResult{ .rest = input[i..], .result = input[0..i] };
+                    }
+                }
+            }
+            return IResult{ .rest = "", .result = input };
+        }
+    }.is_not;
+}
+
+test is_not {
+    const target = "123 and 321";
+    const result = try is_a(" \n\t\r")(target);
+    try std.testing.expectEqualStrings("123", result.result);
+
+    const target2 = "DEBACFG";
+    const result2 = try is_a(" \n\t\r")(target2);
     try std.testing.expectEqualStrings("DEBACF", result2.result);
 }
