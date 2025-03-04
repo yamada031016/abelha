@@ -40,6 +40,7 @@ pub const ParseError = error{
     InvalidFormat,
     InvalidCharacter,
     NotFound,
+    EmptyMatched,
     InputTooShort,
     NeedleTooLong,
     UnknownKeyword,
@@ -163,7 +164,7 @@ pub inline fn panic(err: anyerror, args: anytype) void {
                         \\ parse failed.
                     , .{}),
                     3 => std.debug.print(
-                        \\{s}({}) {s}
+                        \\{s}({s}) {s}
                         \\found: {s}
                     , .{ args[0], args[1], @errorName(err), args[2] }),
                     else => std.debug.print("much panic arguement: {any}", .{args}),

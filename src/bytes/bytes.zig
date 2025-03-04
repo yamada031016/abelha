@@ -26,6 +26,118 @@ test take {
     try std.testing.expectEqualStrings("abc", result.result);
 }
 
+pub fn take_till(comptime predicate: fn (val: u8) bool) ParserFunc {
+    return struct {
+        fn take_till(input: []const u8) !IResult {
+            // errdefer |e| ab.panic(e, .{ @src().fn_name, predicate, input });
+
+            for (0..input.len) |i| {
+                if (predicate(input[i])) {
+                    return IResult{ .rest = input[i..], .result = input[0..i] };
+                }
+            }
+
+            return IResult{ .rest = "", .result = input };
+        }
+    }.take_till;
+}
+
+test take_till {
+    const target = "01-1111-1111";
+    const result = try take_till(struct {
+        fn lambda(val: u8) bool {
+            return val == '-';
+        }
+    }.lambda)(target);
+    try std.testing.expectEqualStrings("01", result.result);
+}
+
+pub fn take_till1(comptime predicate: fn (val: u8) bool) ParserFunc {
+    return struct {
+        fn take_till1(input: []const u8) !IResult {
+            // errdefer |e| ab.panic(e, .{ @src().fn_name, predicate, input });
+
+            const result = try take_till(predicate)(input);
+
+            if (result.result.len == 0) {
+                return error.EmptyMatched;
+            }
+
+            return result;
+        }
+    }.take_till1;
+}
+
+test take_till1 {
+    const target = "01-1111-1111";
+    const result = try take_till1(struct {
+        fn lambda(val: u8) bool {
+            return val == '-';
+        }
+    }.lambda)(target);
+    try std.testing.expectEqualStrings("01", result.result);
+
+    const failed_result = take_till1(struct {
+        fn lambda(val: u8) bool {
+            return val == '-';
+        }
+    }.lambda)(result.rest);
+    try std.testing.expectError(error.EmptyMatched, failed_result);
+}
+
+/// Returns a sequence of bytes as slices until the specified pattern is found.
+pub fn take_until(end: []const u8) ParserFunc {
+    return struct {
+        fn take_until(input: []const u8) !IResult {
+            errdefer |e| ab.panic(e, .{ @src().fn_name, end, input });
+
+            const index = std.mem.indexOf(u8, input, end);
+            if (index) |idx| {
+                return IResult{ .rest = input[idx..], .result = input[0..idx] };
+            } else {
+                return error.NotFound;
+            }
+        }
+    }.take_until;
+}
+
+test take_until {
+    const target = "hogehoge\n";
+    const result = try take_until("\n")(target);
+    try std.testing.expectEqualStrings("hogehoge", result.result);
+
+    const invalid_target = "hogehoge";
+    const failed_result = take_until("\n")(invalid_target);
+    try std.testing.expectError(error.NotFound, failed_result);
+}
+
+/// Returns a sequence of bytes as slices until the specified pattern is found.
+/// 'error.EmptyMatched' is returned when nothing is matched
+pub fn take_until1(end: []const u8) ParserFunc {
+    return struct {
+        fn take_until1(input: []const u8) !IResult {
+            errdefer |e| ab.panic(e, .{ @src().fn_name, end, input });
+
+            const result = try take_until(end)(input);
+
+            if (result.result.len == 0) {
+                return error.EmptyMatched;
+            }
+
+            return result;
+        }
+    }.take_until1;
+}
+
+test take_until1 {
+    const target = "hogehoge\nhogehoge";
+    const result = try take_until1("\n")(target);
+    try std.testing.expectEqualStrings("hogehoge", result.result);
+
+    const failed_result = take_until1("\n")(result.rest);
+    try std.testing.expectError(error.EmptyMatched, failed_result);
+}
+
 /// Recognizes the pattern specified by the `needle` argument
 /// The input is compared to see if it matches the pattern and the matching portion is returned.
 /// If the size of the input is less than the size of the pattern, `error.NeedleTooShort` is returned.
@@ -78,21 +190,6 @@ test tag_ignore_case {
     try std.testing.expectEqualStrings("AbC", result.result);
 }
 
-/// Returns a sequence of bytes as slices until the specified pattern is found.
-pub fn take_until(end: []const u8) ParserFunc {
-    return struct {
-        fn take_until(input: []const u8) !IResult {
-            errdefer |e| ab.panic(e, .{ @src().fn_name, end, input });
-
-            const index = std.mem.indexOf(u8, input, end);
-            if (index) |idx| {
-                return IResult{ .rest = input[idx..], .result = input[0..idx] };
-            } else {
-                return error.NotFound;
-            }
-        }
-    }.take_until;
-}
 /// Matches a byte string with escaped characters.
 pub fn escaped(normal: ParserFunc, escapable: ParserFunc) ParserFunc {
     return struct {
