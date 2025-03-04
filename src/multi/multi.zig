@@ -13,7 +13,9 @@ const take_until = ab.bytes.take_until;
 /// Runs as long as the specified parser succeeds and returns the result in slices when it fails.
 pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ParseResult([]const []const u8) {
     return struct {
-        fn parse(input: []const u8) !ParseResult([]const []const u8) {
+        fn many1(input: []const u8) !ParseResult([]const []const u8) {
+            // errdefer |e| ab.panic(e, .{ @src().fn_name, parser, input });
+
             var array = std.ArrayList([]const u8).init(std.heap.page_allocator);
             var rest_input = input;
             while (true) {
@@ -36,7 +38,7 @@ pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ParseResult([]const []
                 }
             }
         }
-    }.parse;
+    }.many1;
 }
 
 test many1 {
@@ -50,7 +52,9 @@ test many1 {
 /// If the parser `end` succeeds, return the results of the `parser` so far as a slice
 pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) anyerror!ParseResult([]const []const u8) {
     return struct {
-        fn parse(input: []const u8) !ParseResult([]const []const u8) {
+        fn many_till(input: []const u8) !ParseResult([]const []const u8) {
+            // errdefer |e| ab.panic(e, .{ @src().fn_name, .{ parser, end }, input });
+
             var array = std.ArrayList([]const u8).init(std.heap.page_allocator);
             var rest_input = input;
             while (true) {
@@ -82,14 +86,16 @@ pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) anyerror!P
                 }
             }
         }
-    }.parse;
+    }.many_till;
 }
 
 /// The input is split in a sequence of bytes that is recognized by the parser `sep`, and the split elements are recognized by the parser `parser`.
 /// If `parser` fails, it returns an error, and if `sep` fails, it returns the result of `parser` so far in slices.
 pub fn separated_list1(T: type, sep: anytype, parser: anytype) fn ([]const u8) anyerror!ParseResult([]const T) {
     return struct {
-        fn parse(input: []const u8) !ParseResult([]const T) {
+        fn separated_list1(input: []const u8) !ParseResult([]const T) {
+            // errdefer |e| ab.panic(e, .{ @src().fn_name, .{T, sep, parser}, input });
+
             var array = std.ArrayList(T).init(std.heap.page_allocator);
             var rest_input = input;
             while (parser(rest_input)) |result| {
@@ -112,7 +118,7 @@ pub fn separated_list1(T: type, sep: anytype, parser: anytype) fn ([]const u8) a
                 }
             }
         }
-    }.parse;
+    }.separated_list1;
 }
 
 test separated_list1 {
