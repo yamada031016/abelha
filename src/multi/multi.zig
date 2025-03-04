@@ -14,7 +14,7 @@ const take_until = ab.bytes.take_until;
 pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ParseResult([]const []const u8) {
     return struct {
         fn many1(input: []const u8) !ParseResult([]const []const u8) {
-            // errdefer |e| ab.panic(e, .{ @src().fn_name, parser, input });
+            errdefer |e| ab.panic(e, .{ @src().fn_name, parser, input });
 
             var array = std.ArrayList([]const u8).init(std.heap.page_allocator);
             var rest_input = input;
