@@ -52,11 +52,46 @@ pub const ParseError = error{
 pub inline fn panic(err: anyerror, args: anytype) void {
     if (@import("builtin").mode == .Debug or @import("builtin").mode == .ReleaseSafe) {
         switch (err) {
-            error.InputTooShort => std.debug.print(
-                \\{s}({}) {s}
-                \\found: {s}
-                \\       ^ -- Expected at least {}, but found only {}.
-            , .{ args[0], args[1], @errorName(err), args[2], args[1], args[2].len }),
+            error.InputTooShort => {
+                switch (@typeInfo(@TypeOf(args[1]))) {
+                    .Pointer => |pointer| {
+                        const str = args[1];
+                        switch (@typeInfo(pointer.child)) {
+                            .Array => |arr| {
+                                if (@typeInfo(arr.child) == .Int) {
+                                    // []const u8
+                                    std.debug.print(
+                                        \\{s}({s}) {s}
+                                        \\found: {s}
+                                        \\       ^ -- Expected at least {}, but found only {}.
+                                    , .{ args[0], str, @errorName(err), args[2], str.len, args[2].len });
+                                }
+                            },
+                            .Int => std.debug.print(
+                                \\{s}({s}) {s}
+                                \\found: {s}
+                                \\       ^ -- Expected at least {}, but found only {}.
+                            , .{ args[0], str, @errorName(err), args[2], str.len, args[2].len }),
+                            else => @panic("parser function arguments have unsupported type of pointer."),
+                        }
+                    },
+                    .Struct => {
+                        // []const u8
+                        std.debug.print(
+                            \\{s}({any}) {s}
+                            \\found: {s}
+                            \\       ^ -- Expected at least {}, but found only {}.
+                        , .{ args[0], args[1], @errorName(err), args[2], args[1].len, args[2].len });
+                    },
+                    else => {
+                        std.debug.print(
+                            \\{s}({}) {s}
+                            \\found: {s}
+                            \\       ^
+                        , .{ args[0], args[1], @errorName(err), args[2] });
+                    },
+                }
+            },
             error.NeedleTooLong => std.debug.print(
                 \\
                 \\[error] {s}("{s}") {s}

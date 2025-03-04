@@ -20,6 +20,12 @@ pub fn take(cnt: usize) ParserFunc {
     }.take;
 }
 
+test take {
+    const target = "abcdefg";
+    const result = try take(3)(target);
+    try std.testing.expectEqualStrings("abc", result.result);
+}
+
 /// Recognizes the pattern specified by the `needle` argument
 /// The input is compared to see if it matches the pattern and the matching portion is returned.
 /// If the size of the input is less than the size of the pattern, `error.NeedleTooShort` is returned.
@@ -30,19 +36,46 @@ pub fn tag(needle: []const u8) ParserFunc {
             errdefer |e| ab.panic(e, .{ @src().fn_name, needle, input });
 
             if (input.len < needle.len) {
-                std.log.debug("\ntarget string: {s}(len: {})\nneedle: {s}(len: {})\n", .{ input, input.len, needle, needle.len });
                 return error.NeedleTooLong;
+            }
+
+            if (std.mem.eql(u8, input[0..needle.len], needle)) {
+                return IResult{ .rest = input[needle.len..], .result = needle };
             } else {
-                if (std.mem.eql(u8, input[0..needle.len], needle)) {
-                    std.log.debug("successed.\ntarget string: {s}(len: {})\nneedle: {s}(len: {})\n", .{ input, input.len, needle, needle.len });
-                    return IResult{ .rest = input[needle.len..], .result = needle };
-                } else {
-                    std.log.debug("\ntarget string: {s}\nneedle: {s}\n", .{ input, needle });
-                    return error.NotFound;
-                }
+                return error.NotFound;
             }
         }
     }.tag;
+}
+
+test tag {
+    const target = "abcdefg";
+    const result = try tag("abc")(target);
+    try std.testing.expectEqualStrings("abc", result.result);
+}
+
+pub fn tag_ignore_case(needle: []const u8) ParserFunc {
+    return struct {
+        fn tag_ignore_case(input: []const u8) !IResult {
+            errdefer |e| ab.panic(e, .{ @src().fn_name, needle, input });
+
+            if (input.len < needle.len) {
+                return error.NeedleTooLong;
+            }
+
+            if (std.ascii.eqlIgnoreCase(input[0..needle.len], needle)) {
+                return IResult{ .rest = input[needle.len..], .result = input[0..needle.len] };
+            } else {
+                return error.NotFound;
+            }
+        }
+    }.tag_ignore_case;
+}
+
+test tag_ignore_case {
+    const target = "AbCdEfG";
+    const result = try tag_ignore_case("abc")(target);
+    try std.testing.expectEqualStrings("AbC", result.result);
 }
 
 /// Returns a sequence of bytes as slices until the specified pattern is found.
@@ -100,6 +133,10 @@ pub fn is_a(pattern: []const u8) ParserFunc {
         fn is_a(input: []const u8) !IResult {
             errdefer |e| ab.panic(e, .{ @src().fn_name, pattern, input });
 
+            if (input.len == 0) {
+                return error.InputTooShort;
+            }
+
             var bitmask: [256]bool = [_]bool{false} ** 256;
             for (pattern) |p| {
                 bitmask[p] = true;
@@ -151,10 +188,10 @@ pub fn is_not(needle: []const u8) ParserFunc {
 
 test is_not {
     const target = "123 and 321";
-    const result = try is_a(" \n\t\r")(target);
+    const result = try is_not(" \n\t\r")(target);
     try std.testing.expectEqualStrings("123", result.result);
 
-    const target2 = "DEBACFG";
-    const result2 = try is_a(" \n\t\r")(target2);
+    const target2 = "DEBACF";
+    const result2 = try is_not(" \n\t\r")(target2);
     try std.testing.expectEqualStrings("DEBACF", result2.result);
 }
