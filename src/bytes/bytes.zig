@@ -83,7 +83,7 @@ pub fn is_not(needle: []const u8) ParserFunc {
     }.is_not;
 }
 
-/// Returns a sequence of bytes as a slice until the specified character is found
+/// Matches a byte string with escaped characters.
 pub fn escaped(normal: ParserFunc, escapable: ParserFunc) ParserFunc {
     return struct {
         fn escaped(input: []const u8) !IResult {
@@ -115,4 +115,37 @@ test escaped {
     const target2 = "abab";
     result = try escaped(tag("ab"), ab.character.char('\n'))(target2);
     try std.testing.expectEqualStrings("ab", result.result);
+}
+
+/// Returns the longest slice of the matches the pattern.
+pub fn is_a(pattern: []const u8) ParserFunc {
+    return struct {
+        fn is_a(input: []const u8) !IResult {
+            errdefer |e| ab.panic(e, .{ @src().fn_name, pattern, input });
+
+            var bitmask: [256]bool = [_]bool{false} ** 256;
+            for (pattern) |p| {
+                bitmask[p] = true;
+            }
+
+            var i: usize = 0;
+            while (bitmask[input[i]]) : (i += 1) {}
+
+            if (i == 0) {
+                return error.NotFound;
+            } else {
+                return IResult{ .rest = input[i..], .result = input[0..i] };
+            }
+        }
+    }.is_a;
+}
+
+test is_a {
+    const target = "123 and 321";
+    const result = try is_a("1234567890ABCDEF")(target);
+    try std.testing.expectEqualStrings("123", result.result);
+
+    const target2 = "DEBACFG";
+    const result2 = try is_a("1234567890ABCDEF")(target2);
+    try std.testing.expectEqualStrings("DEBACF", result2.result);
 }
