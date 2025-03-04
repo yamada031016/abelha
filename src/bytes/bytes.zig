@@ -10,7 +10,7 @@ const ParseError = ab.ParseError;
 pub fn take(cnt: usize) ParserFunc {
     return struct {
         fn take(input: []const u8) !IResult {
-            errdefer |e| ab.panic(e, .{ @src().fn_name, cnt, input });
+            errdefer |e| ab.report(e, .{ @src().fn_name, cnt, input });
 
             if (input.len < cnt) {
                 return error.InputTooShort;
@@ -29,7 +29,7 @@ test take {
 pub fn take_till(comptime predicate: fn (val: u8) bool) ParserFunc {
     return struct {
         fn take_till(input: []const u8) !IResult {
-            // errdefer |e| ab.panic(e, .{ @src().fn_name, predicate, input });
+            // errdefer |e| ab.report(e, .{ @src().fn_name, predicate, input });
 
             for (0..input.len) |i| {
                 if (predicate(input[i])) {
@@ -55,7 +55,7 @@ test take_till {
 pub fn take_till1(comptime predicate: fn (val: u8) bool) ParserFunc {
     return struct {
         fn take_till1(input: []const u8) !IResult {
-            // errdefer |e| ab.panic(e, .{ @src().fn_name, predicate, input });
+            // errdefer |e| ab.report(e, .{ @src().fn_name, predicate, input });
 
             const result = try take_till(predicate)(input);
 
@@ -89,7 +89,7 @@ test take_till1 {
 pub fn take_until(end: []const u8) ParserFunc {
     return struct {
         fn take_until(input: []const u8) !IResult {
-            errdefer |e| ab.panic(e, .{ @src().fn_name, end, input });
+            errdefer |e| ab.report(e, .{ @src().fn_name, end, input });
 
             const index = std.mem.indexOf(u8, input, end);
             if (index) |idx| {
@@ -116,7 +116,7 @@ test take_until {
 pub fn take_until1(end: []const u8) ParserFunc {
     return struct {
         fn take_until1(input: []const u8) !IResult {
-            errdefer |e| ab.panic(e, .{ @src().fn_name, end, input });
+            errdefer |e| ab.report(e, .{ @src().fn_name, end, input });
 
             const result = try take_until(end)(input);
 
@@ -145,7 +145,7 @@ test take_until1 {
 pub fn tag(needle: []const u8) ParserFunc {
     return struct {
         fn tag(input: []const u8) !IResult {
-            errdefer |e| ab.panic(e, .{ @src().fn_name, needle, input });
+            errdefer |e| ab.report(e, .{ @src().fn_name, needle, input });
 
             if (input.len < needle.len) {
                 return error.NeedleTooLong;
@@ -169,7 +169,7 @@ test tag {
 pub fn tag_ignore_case(needle: []const u8) ParserFunc {
     return struct {
         fn tag_ignore_case(input: []const u8) !IResult {
-            errdefer |e| ab.panic(e, .{ @src().fn_name, needle, input });
+            errdefer |e| ab.report(e, .{ @src().fn_name, needle, input });
 
             if (input.len < needle.len) {
                 return error.NeedleTooLong;
@@ -194,7 +194,7 @@ test tag_ignore_case {
 pub fn escaped(normal: ParserFunc, escapable: ParserFunc) ParserFunc {
     return struct {
         fn escaped(input: []const u8) !IResult {
-            // errdefer |e| ab.panic(e, .{ @src().fn_name, .{ normal, escapable }, input });
+            // errdefer |e| ab.report(e, .{ @src().fn_name, .{ normal, escapable }, input });
 
             const result = try normal(input);
 
@@ -228,7 +228,7 @@ test escaped {
 pub fn is_a(pattern: []const u8) ParserFunc {
     return struct {
         fn is_a(input: []const u8) !IResult {
-            errdefer |e| ab.panic(e, .{ @src().fn_name, pattern, input });
+            errdefer |e| ab.report(e, .{ @src().fn_name, pattern, input });
 
             if (input.len == 0) {
                 return error.InputTooShort;
@@ -265,7 +265,7 @@ test is_a {
 pub fn is_not(needle: []const u8) ParserFunc {
     return struct {
         fn is_not(input: []const u8) !IResult {
-            errdefer |e| ab.panic(e, .{ @src().fn_name, needle, input });
+            errdefer |e| ab.report(e, .{ @src().fn_name, needle, input });
 
             if (input.len == 0) {
                 return error.InputTooShort;

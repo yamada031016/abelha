@@ -39,7 +39,7 @@ test alt {
 pub fn permutation(T: type, parser_tupple: anytype) fn ([]const u8) anyerror!ParseResult([]const T) {
     return struct {
         fn permutation(input: []const u8) !ParseResult([]const T) {
-            errdefer |e| ab.panic(e, .{ @src().fn_name, "", input });
+            // errdefer |e| ab.report(e, .{ @src().fn_name, parser_tupple, input });
 
             var array = std.ArrayList([]const u8).init(std.heap.page_allocator);
             var rest = input;

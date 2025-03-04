@@ -12,7 +12,7 @@ const many1 = ab.multi.many1;
 pub fn char(character: u8) ParserFunc {
     return struct {
         fn char(input: []const u8) !IResult {
-            errdefer |e| ab.panic(e, .{ @src().fn_name, &[_]u8{character}, input });
+            errdefer |e| ab.report(e, .{ @src().fn_name, &[_]u8{character}, input });
 
             switch (input.len) {
                 0 => {},
@@ -40,7 +40,7 @@ test char {
 
 /// Recognizes one or more specified hexadecimal numbers
 pub fn hexDigit1(input: []const u8) !IResult {
-    errdefer |e| ab.panic(e, .{ @src().fn_name, .{}, input });
+    errdefer |e| ab.report(e, .{ @src().fn_name, .{}, input });
 
     if (input.len < 1) {
         return error.InputTooShort;

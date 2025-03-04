@@ -14,27 +14,23 @@ const take_until = ab.bytes.take_until;
 pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ParseResult([]const []const u8) {
     return struct {
         fn many1(input: []const u8) !ParseResult([]const []const u8) {
-            errdefer |e| ab.panic(e, .{ @src().fn_name, parser, input });
+            errdefer |e| ab.report(e, .{ @src().fn_name, parser, input });
 
             var array = std.ArrayList([]const u8).init(std.heap.page_allocator);
             var rest_input = input;
             while (true) {
-                const r = parser(rest_input);
-                if (r) |res| {
-                    array.append(res.result) catch |err| {
-                        return err;
-                    };
-                    if (res.rest.len == 0) {
-                        return ParseResult([]const []const u8){ .rest = res.rest, .result = try array.toOwnedSlice() };
-                    } else {
-                        rest_input = res.rest;
-                    }
-                } else |e| {
+                const result = parser(rest_input) catch {
                     if (array.getLastOrNull()) |_| {
                         return ParseResult([]const []const u8){ .rest = rest_input, .result = try array.toOwnedSlice() };
-                    } else {
-                        return e;
                     }
+                    return error.NotFound;
+                };
+
+                try array.append(result.result);
+                if (result.rest.len == 0) {
+                    return ParseResult([]const []const u8){ .rest = result.rest, .result = try array.toOwnedSlice() };
+                } else {
+                    rest_input = result.rest;
                 }
             }
         }
@@ -53,7 +49,7 @@ test many1 {
 pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) anyerror!ParseResult([]const []const u8) {
     return struct {
         fn many_till(input: []const u8) !ParseResult([]const []const u8) {
-            // errdefer |e| ab.panic(e, .{ @src().fn_name, .{ parser, end }, input });
+            errdefer |e| ab.report(e, .{ @src().fn_name, .{ parser, end }, input });
 
             var array = std.ArrayList([]const u8).init(std.heap.page_allocator);
             var rest_input = input;
@@ -94,7 +90,7 @@ pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) anyerror!P
 pub fn separated_list1(T: type, sep: anytype, parser: anytype) fn ([]const u8) anyerror!ParseResult([]const T) {
     return struct {
         fn separated_list1(input: []const u8) !ParseResult([]const T) {
-            // errdefer |e| ab.panic(e, .{ @src().fn_name, .{T, sep, parser}, input });
+            // errdefer |e| ab.report(e, .{ @src().fn_name, .{T, sep, parser}, input });
 
             var array = std.ArrayList(T).init(std.heap.page_allocator);
             var rest_input = input;
