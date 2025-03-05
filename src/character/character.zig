@@ -4,6 +4,7 @@ const ab = @import("../abelha.zig");
 const ParserFunc = ab.ParserFunc;
 const IResult = ab.IResult;
 const ParseError = ab.ParseError;
+const ParseResult = ab.ParseResult;
 
 const tag = ab.bytes.tag;
 const many1 = ab.multi.many1;
@@ -270,6 +271,166 @@ test hexDigit1 {
     try std.testing.expectError(error.EmptyMatched, failed_result);
 }
 
+/// Recognizes zero or more specified oxtal numbers
+pub fn octDigit0(input: []const u8) !IResult {
+    errdefer |e| ab.report(e, .{ @src().fn_name, .{}, input });
+
+    var pos: usize = 0;
+    for (0..input.len) |i| {
+        const isOct = switch (input[i]) {
+            '0'...'7' => true,
+            else => false,
+        };
+        if (!isOct) {
+            pos = i;
+            break;
+        }
+    } else {
+        // All inputs accepted.
+        pos = input.len;
+    }
+
+    return IResult{ .rest = input[pos..], .result = input[0..pos] };
+}
+
+test octDigit0 {
+    const target = "12345678";
+    const result = try octDigit0(target);
+    try std.testing.expectEqualStrings("1234567", result.result);
+
+    const empty_result = try octDigit0(result.rest); // rest=8
+    try std.testing.expectEqualStrings("", empty_result.result);
+}
+
+/// Recognizes zero or more specified oxtal numbers
+pub fn octDigit1(input: []const u8) !IResult {
+    return try ab.prohibitEmptyResult("octDigit1", octDigit0, input);
+}
+
+test octDigit1 {
+    const target = "12345678";
+    const result = try octDigit1(target);
+    try std.testing.expectEqualStrings("1234567", result.result);
+
+    const failed_result = octDigit1(result.rest); // rest=8
+    try std.testing.expectError(error.EmptyMatched, failed_result);
+}
+
+fn parseNumber(comptime T: type, input: []const u8) !ab.ParseResult(T) {
+    errdefer |e| ab.report(e, .{ @src().fn_name, T, input });
+
+    if (input.len == 0) return error.InputTooShort;
+
+    var i: usize = 0;
+    var result: T = 0;
+    var base: u8 = 10;
+    var is_negative = false;
+
+    switch (input[i]) {
+        '-' => {
+            if (std.math.minInt(T) == 0) {
+                // T is unsigned integar type.
+                return error.InvalidArgument;
+            }
+            is_negative = true;
+            i += 1;
+        },
+        '+' => i += 1,
+        else => {},
+    }
+
+    if (i >= input.len) return error.InvalidFormat; // input only has `+` or `-`,  throw error.
+
+    // check prefix
+    if (i + 1 < input.len and input[i] == '0') {
+        switch (input[i + 1]) {
+            'x', 'X' => {
+                base = 16;
+                i += 2;
+            },
+            'b', 'B' => {
+                base = 2;
+                i += 2;
+            },
+            'o', 'O' => {
+                base = 8;
+                i += 2;
+            },
+            else => {},
+        }
+    }
+
+    if (i >= input.len) return error.InvalidFormat; // input only has prefix, such as "0x",  throw error.
+
+    var found = false;
+    while (i < input.len) : (i += 1) {
+        const c: u8 = input[i];
+
+        const digit: u8 = switch (c) {
+            '0'...'9' => c - '0',
+            'a'...'f' => if (base > 10) c - 'a' + 10 else break,
+            'A'...'F' => if (base > 10) c - 'A' + 10 else break,
+            else => break,
+        };
+
+        if (digit >= base) break;
+
+        result = checkOverflow: {
+            // result = result * base + digit
+            var new_result, var overflow = @mulWithOverflow(result, base);
+            if (overflow == 1) return error.IntegerOverflow;
+
+            if (is_negative) {
+                new_result, overflow = @subWithOverflow(new_result, digit);
+            } else {
+                new_result, overflow = @addWithOverflow(new_result, digit);
+            }
+            if (overflow == 1) return error.IntegerOverflow;
+
+            break :checkOverflow new_result;
+        };
+        found = true;
+    }
+
+    if (!found) return error.NotFound;
+    return ab.ParseResult(T){ .result = result, .rest = input[i..] };
+}
+
+test parseNumber {
+    const testing = std.testing;
+    const TestCase = ab.TestCase;
+
+    const cases = [_]TestCase(i64){
+        .{ .input = "1234", .expected_value = 1234, .expected_rest = "" },
+        .{ .input = "-5678", .expected_value = -5678, .expected_rest = "" },
+        .{ .input = "+42", .expected_value = 42, .expected_rest = "" },
+        .{ .input = "0x1F3A", .expected_value = 0x1F3A, .expected_rest = "" },
+        .{ .input = "-0b1101", .expected_value = -0b1101, .expected_rest = "" },
+        .{ .input = "0o754", .expected_value = 0o754, .expected_rest = "" },
+        .{ .input = "1000000000000000000", .expected_value = 1000000000000000000, .expected_rest = "" },
+        .{ .input = "xyz123", .expected_value = error.NotFound, .expected_rest = "xyz123" },
+        .{ .input = "+", .expected_value = error.InvalidFormat, .expected_rest = "+" },
+        .{ .input = "-", .expected_value = error.InvalidFormat, .expected_rest = "-" },
+        .{ .input = "0x", .expected_value = error.InvalidFormat, .expected_rest = "0x" },
+        .{ .input = "0b", .expected_value = error.InvalidFormat, .expected_rest = "0b" },
+        .{ .input = "0o", .expected_value = error.InvalidFormat, .expected_rest = "0o" },
+        .{ .input = "42abc", .expected_value = 42, .expected_rest = "abc" },
+        .{ .input = "-0xABCdef", .expected_value = -0xABCDEF, .expected_rest = "" },
+        .{ .input = "0b101010xyz", .expected_value = 42, .expected_rest = "xyz" },
+    };
+
+    for (cases) |case| {
+        const res = parseNumber(i64, case.input);
+        if (case.expected_value) |expected| {
+            const parsed = res catch unreachable;
+            try testing.expectEqual(expected, parsed.result);
+            try testing.expectEqualSlices(u8, case.expected_rest, parsed.rest);
+        } else |expect_error| {
+            try testing.expectError(expect_error, res);
+        }
+    }
+}
+
 /// Recognizes `\n`.
 pub fn newline(input: []const u8) !IResult {
     if (char('\n')(input)) |result| {
@@ -294,8 +455,144 @@ pub fn line_ending(input: []const u8) !IResult {
     }
 }
 
-// Recognizes one or more spaces and tabs.
-pub fn space1(input: []const u8) !IResult {
-    const result = try many1(char(' '))(input);
+/// Recognizes any characters except `\n` or `\r\n`.
+pub fn not_line_ending(input: []const u8) !IResult {
+    var i: usize = 0;
+    while (i < input.len) : (i += 1) {
+        switch (input[i]) {
+            '\n' => return IResult{ .rest = input[i..], .result = input[0..i] },
+            '\r' => {
+                if (i + 1 < input.len and input[i + 1] == '\n') {
+                    return IResult{ .rest = input[i..], .result = input[0..i] };
+                } else {
+                    return error.InvalidCharacter;
+                }
+            },
+            else => {},
+        }
+    }
+    return IResult{ .rest = "", .result = input };
+}
+
+test not_line_ending {
+    const testing = std.testing;
+    const TestCase = ab.TestCase;
+
+    const cases = [_]TestCase([]const u8){
+        .{ .input = "text\n", .expected_value = "text", .expected_rest = "\n" },
+        .{ .input = "text\r\n", .expected_value = "text", .expected_rest = "\r\n" },
+        .{ .input = "", .expected_value = "", .expected_rest = "" },
+        .{ .input = "\r\n", .expected_value = "", .expected_rest = "\r\n" },
+        .{ .input = "\r", .expected_value = error.InvalidCharacter, .expected_rest = "\r" },
+    };
+
+    for (cases) |case| {
+        const res = not_line_ending(case.input);
+        if (case.expected_value) |expected| {
+            const parsed = res catch unreachable;
+            try testing.expectEqualStrings(expected, parsed.result);
+            try testing.expectEqualStrings(case.expected_rest, parsed.rest);
+        } else |expect_error| {
+            try testing.expectError(expect_error, res);
+        }
+    }
+}
+
+// Recognizes zero or more spaces, tabs, carriage returns and line endings.
+// pub fn multispace0(input: []const u8) !IResult {
+// const result = try many0(ab.bytes.is_a(" \t\r\n"))(input);
+// return IResult{ .rest = result.rest, .result = try std.mem.concat(std.heap.page_allocator, u8, result.result) };
+// }
+
+// Recognizes spaces, tabs, carriage returns and line endings.
+pub fn multispace1(input: []const u8) !IResult {
+    const result = try many1(ab.bytes.is_a(" \t\r\n"))(input);
     return IResult{ .rest = result.rest, .result = try std.mem.concat(std.heap.page_allocator, u8, result.result) };
+}
+
+// Recognizes zero or more spaces and tabs.
+// pub fn space0(input: []const u8) !IResult {
+//     const result = try many0(char(' '))(input);
+//     return IResult{ .rest = result.rest, .result = try std.mem.concat(std.heap.page_allocator, u8, result.result) };
+// }
+
+// Recognizes spaces and tabs.
+pub fn space1(input: []const u8) !IResult {
+    const result = try many1(ab.bytes.is_a(" \t"))(input);
+    return IResult{ .rest = result.rest, .result = try std.mem.concat(std.heap.page_allocator, u8, result.result) };
+}
+
+// Recognizes tabs.
+pub fn tab(input: []const u8) !IResult {
+    const result = try char('\t')(input);
+    return IResult{ .rest = result.rest, .result = result.result };
+}
+
+// pub fn none_of(prohibit_str: []const u8) ParserFunc {
+//     return struct {
+//         fn none_of(input: []const u8) !IResult {
+//             if (input.len == 0) {
+//                 return error.InputTooShort;
+//             }
+//
+//             var bitmask: [256]bool = [_]bool{true} ** 256;
+//             for (prohibit_str) |p| {
+//                 bitmask[p] = false;
+//             }
+//
+//             var i: usize = 0;
+//             while (bitmask[input[i]]) : (i += 1) {}
+//
+//             if (i == 0) {
+//                 return error.InvalidCharacter;
+//             } else {
+//                 return IResult{ .rest = input[i..], .result = input[0..i] };
+//             }
+//         }
+//     }.none_of;
+// }
+
+/// Recognizes one of provided pattern character.
+pub fn one_of(pattern: []const u8) fn ([]const u8) anyerror!ParseResult(u8) {
+    return struct {
+        fn one_of(input: []const u8) !ParseResult(u8) {
+            errdefer |e| ab.report(e, .{ @src().fn_name, pattern, input });
+
+            if (input.len == 0) {
+                return error.InputTooShort;
+            }
+
+            var bitmask: [256]bool = [_]bool{false} ** 256;
+            for (pattern) |p| {
+                bitmask[p] = true;
+            }
+
+            if (bitmask[input[0]]) {
+                return ParseResult(u8){ .rest = input[1..], .result = input[0] };
+            } else {
+                return error.NotFound;
+            }
+        }
+    }.one_of;
+}
+
+test one_of {
+    const testing = std.testing;
+
+    const cases = [_]ab.TestCase(u8){
+        .{ .input = "abc", .expected_value = 'a', .expected_rest = "bc" },
+        .{ .input = "", .expected_value = error.InputTooShort, .expected_rest = "" },
+        .{ .input = "efg", .expected_value = error.NotFound, .expected_rest = "efg" },
+    };
+
+    for (cases) |case| {
+        const res = one_of("abc")(case.input);
+        if (case.expected_value) |expected| {
+            const parsed = res catch unreachable;
+            try testing.expectEqual(expected, parsed.result);
+            try testing.expectEqualSlices(u8, case.expected_rest, parsed.rest);
+        } else |expect_error| {
+            try testing.expectError(expect_error, res);
+        }
+    }
 }

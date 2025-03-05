@@ -39,14 +39,16 @@ pub const ParseError = error{
     UnexpectedEndOfInput,
     InvalidFormat,
     InvalidCharacter,
+    InvalidArgument,
     NotFound,
     EmptyMatched,
     InputTooShort,
     NeedleTooLong,
     UnknownKeyword,
+    IntegerOverflow,
 };
 
-const ParserArgType = union(enum) { Unit: void, String: []const u8, ParserFunc: ParserFunc, Tuple: void, Other: void };
+const ParserArgType = union(enum) { Unit: void, String: []const u8, ParserFunc: ParserFunc, Tuple: void, Type: type, Other: void };
 fn examineArgType(arg: anytype) ParserArgType {
     switch (@typeInfo(@TypeOf(arg))) {
         .Pointer => |pointer| {
@@ -70,6 +72,7 @@ fn examineArgType(arg: anytype) ParserArgType {
             return ParserArgType{ .Tuple = void{} };
         },
         .Fn => return ParserArgType{ .ParserFunc = arg },
+        .Type => return ParserArgType{ .Type = arg },
         else => return ParserArgType{ .Other = void{} },
     }
 }
@@ -78,7 +81,7 @@ fn examineArgType(arg: anytype) ParserArgType {
 // args[1]: parse function arguments
 // args[2]: parse function input
 // args[3..]: optional infomation
-pub inline fn report(err: anyerror, args: anytype) void {
+pub fn report(err: anyerror, args: anytype) void {
     if (@import("builtin").mode == .Debug or @import("builtin").mode == .ReleaseSafe) {
         const argType = examineArgType(args[1]);
         switch (err) {
@@ -150,15 +153,13 @@ pub inline fn report(err: anyerror, args: anytype) void {
                         \\│ {s}
                         \\  ^
                     , .{ args[0], @typeName(@TypeOf(args[1])), @errorName(err), args[2] }),
-                    else => {
-                        std.debug.print(
-                            \\
-                            \\[error] {s}({any}) {s}
-                            \\┌─
-                            \\│ {s}
-                            \\  ^ -- Expected "{s}", but found "{s}".
-                        , .{ args[0], args[1], @errorName(err), args[2], args[1], args[2] });
-                    },
+                    else => std.debug.print(
+                        \\
+                        \\[error] {s}({any}) {s}
+                        \\┌─
+                        \\│ {s}
+                        \\  ^
+                    , .{ args[0], args[1], @errorName(err), args[2] }),
                 }
             },
             error.NotFound => {
@@ -198,11 +199,11 @@ pub inline fn report(err: anyerror, args: anytype) void {
                         \\[error] {s}({any}) {s}
                         \\┌─
                         \\│ {s}
-                        \\  ^ -- Expected "{s}", but found "{s}".
-                    , .{ args[0], args[1], @errorName(err), args[2], args[1], args[2] }),
+                        \\  ^
+                    , .{ args[0], args[1], @errorName(err), args[2] }),
                 }
             },
-            error.EmptyMatched => {
+            error.InvalidFormat, error.EmptyMatched => {
                 switch (argType) {
                     .String => std.debug.print(
                         \\
@@ -238,9 +239,27 @@ pub inline fn report(err: anyerror, args: anytype) void {
                             \\[error] {s}({any}) {s}
                             \\┌─
                             \\│ {s}
-                            \\  ^ -- Expected "{s}", but found "{s}".
-                        , .{ args[0], args[1], @errorName(err), args[2], args[1], args[2] });
+                            \\  ^
+                        , .{ args[0], args[1], @errorName(err), args[2] });
                     },
+                }
+            },
+            error.IntegerOverflow => {
+                switch (argType) {
+                    .Type => |t| std.debug.print(
+                        \\
+                        \\[error] {s}("{s}") {s}
+                        \\┌─
+                        \\│ {s}
+                        \\  ^ -- Integer too {s}.
+                    , .{
+                        args[0],
+                        @typeName(t),
+                        @errorName(err),
+                        args[2],
+                        if (args[2][0] == '-') "small" else "large",
+                    }),
+                    else => unreachable,
                 }
             },
             else => {
@@ -259,6 +278,7 @@ pub inline fn report(err: anyerror, args: anytype) void {
         }
     }
 }
+
 /// Basic Result type of parser
 pub const IResult = ParseResult([]const u8);
 
@@ -279,6 +299,14 @@ pub fn prohibitEmptyResult(name: []const u8, parser: ParserFunc, input: []const 
     }
 
     return result;
+}
+
+pub fn TestCase(comptime T: type) type {
+    return struct {
+        input: []const u8,
+        expected_value: anyerror!T,
+        expected_rest: []const u8,
+    };
 }
 
 test {
