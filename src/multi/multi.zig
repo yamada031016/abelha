@@ -46,9 +46,9 @@ test many1 {
 
 /// Run the parser `parser` until the parser `end` succeeds.
 /// If the parser `end` succeeds, return the results of the `parser` so far as a slice
-pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) anyerror!ParseResult([]const []const u8) {
+pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) ParseError!ParseResult([]const []const u8) {
     return struct {
-        fn many_till(input: []const u8) !ParseResult([]const []const u8) {
+        fn many_till(input: []const u8) ParseError!ParseResult([]const []const u8) {
             errdefer |e| ab.report(e, .{ @src().fn_name, .{ parser, end }, input });
 
             var array = std.ArrayList([]const u8).init(std.heap.page_allocator);
