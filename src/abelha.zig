@@ -46,7 +46,7 @@ pub const ParseError = error{
     NeedleTooLong,
     UnknownKeyword,
     IntegerOverflow,
-};
+} || error{OutOfMemory};
 
 const ParserArgType = union(enum) { Unit: void, String: []const u8, ParserFunc: ParserFunc, Tuple: void, Type: type, Other: void };
 fn examineArgType(arg: anytype) ParserArgType {

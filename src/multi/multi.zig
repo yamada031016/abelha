@@ -56,8 +56,8 @@ pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) anyerror!P
             while (true) {
                 const r = parser(rest_input);
                 if (r) |res| {
-                    array.append(res.result) catch |err| {
-                        return err.OutOfMemory;
+                    array.append(res.result) catch {
+                        return std.mem.Allocator.Error.OutOfMemory;
                     };
                     if (res.rest.len == 0) {
                         return ParseResult([]const []const u8){ .rest = res.rest, .result = try array.toOwnedSlice() };
