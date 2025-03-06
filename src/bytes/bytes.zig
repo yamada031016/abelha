@@ -144,8 +144,8 @@ test take_until1 {
 /// `error.NotFound` is returned when no pattern is found.
 pub fn tag(needle: []const u8) ParserFunc {
     return struct {
-        fn parse(input: []const u8) !IResult {
-            // errdefer |e| ab.report(e, .{ @src().fn_name, needle, input });
+        fn tag(input: []const u8) !IResult {
+            errdefer |e| ab.report(e, .{ @src().fn_name, needle, input });
 
             if (input.len < needle.len) {
                 return error.NeedleTooLong;
@@ -157,7 +157,7 @@ pub fn tag(needle: []const u8) ParserFunc {
                 return error.NotFound;
             }
         }
-    }.parse;
+    }.tag;
 }
 
 test tag {

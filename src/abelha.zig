@@ -81,7 +81,7 @@ fn examineArgType(arg: anytype) ParserArgType {
 // args[1]: parse function arguments
 // args[2]: parse function input
 // args[3..]: optional infomation
-pub inline fn report(err: anyerror, args: anytype) void {
+pub fn report(err: anyerror, args: anytype) void {
     if (@import("builtin").mode == .Debug or @import("builtin").mode == .ReleaseSafe) {
         const argType = examineArgType(args[1]);
         switch (err) {
