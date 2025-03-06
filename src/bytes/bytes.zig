@@ -142,8 +142,8 @@ test take_until1 {
 /// The input is compared to see if it matches the pattern and the matching portion is returned.
 /// If the size of the input is less than the size of the pattern, `error.NeedleTooShort` is returned.
 /// `error.NotFound` is returned when no pattern is found.
-pub export fn tag(needle: []const u8) ParserFunc {
-    return struct {
+pub fn tag(needle: []const u8) ParserFunc {
+    return extern struct {
         fn tag(input: []const u8) !IResult {
             errdefer |e| ab.report(e, .{ @src().fn_name, needle, input });
 
