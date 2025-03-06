@@ -9,7 +9,7 @@ const ParseError = ab.ParseError;
 /// Return `error.InvalidFormat` when the size of input is less than N.
 pub fn take(cnt: usize) ParserFunc {
     return struct {
-        fn take(input: []const u8) !IResult {
+        pub fn take(input: []const u8) !IResult {
             errdefer |e| ab.report(e, .{ @src().fn_name, cnt, input });
 
             if (input.len < cnt) {
@@ -28,7 +28,7 @@ test take {
 
 pub fn take_till(comptime predicate: fn (val: u8) bool) ParserFunc {
     return struct {
-        fn take_till(input: []const u8) !IResult {
+        pub fn take_till(input: []const u8) !IResult {
             // errdefer |e| ab.report(e, .{ @src().fn_name, predicate, input });
 
             for (0..input.len) |i| {
@@ -54,7 +54,7 @@ test take_till {
 
 pub fn take_till1(comptime predicate: fn (val: u8) bool) ParserFunc {
     return struct {
-        fn take_till1(input: []const u8) !IResult {
+        pub fn take_till1(input: []const u8) !IResult {
             // errdefer |e| ab.report(e, .{ @src().fn_name, predicate, input });
 
             const result = try take_till(predicate)(input);
@@ -88,7 +88,7 @@ test take_till1 {
 /// Returns a sequence of bytes as slices until the specified pattern is found.
 pub fn take_until(end: []const u8) ParserFunc {
     return struct {
-        fn take_until(input: []const u8) !IResult {
+        pub fn take_until(input: []const u8) !IResult {
             errdefer |e| ab.report(e, .{ @src().fn_name, end, input });
 
             const index = std.mem.indexOf(u8, input, end);
@@ -115,7 +115,7 @@ test take_until {
 /// 'error.EmptyMatched' is returned when nothing is matched
 pub fn take_until1(end: []const u8) ParserFunc {
     return struct {
-        fn take_until1(input: []const u8) !IResult {
+        pub fn take_until1(input: []const u8) !IResult {
             errdefer |e| ab.report(e, .{ @src().fn_name, end, input });
 
             const result = try take_until(end)(input);
@@ -144,7 +144,7 @@ test take_until1 {
 /// `error.NotFound` is returned when no pattern is found.
 pub fn tag(needle: []const u8) ParserFunc {
     return struct {
-        fn tag(input: []const u8) !IResult {
+        pub fn tag(input: []const u8) !IResult {
             errdefer |e| ab.report(e, .{ @src().fn_name, needle, input });
 
             if (input.len < needle.len) {
@@ -168,7 +168,7 @@ test tag {
 
 pub fn tag_ignore_case(needle: []const u8) ParserFunc {
     return struct {
-        fn tag_ignore_case(input: []const u8) !IResult {
+        pub fn tag_ignore_case(input: []const u8) !IResult {
             errdefer |e| ab.report(e, .{ @src().fn_name, needle, input });
 
             if (input.len < needle.len) {
@@ -193,7 +193,7 @@ test tag_ignore_case {
 /// Matches a byte string with escaped characters.
 pub fn escaped(normal: ParserFunc, escapable: ParserFunc) ParserFunc {
     return struct {
-        fn escaped(input: []const u8) !IResult {
+        pub fn escaped(input: []const u8) !IResult {
             // errdefer |e| ab.report(e, .{ @src().fn_name, .{ normal, escapable }, input });
 
             const result = try normal(input);
@@ -227,7 +227,7 @@ test escaped {
 /// Returns the longest slice of the matches the pattern.
 pub fn is_a(pattern: []const u8) ParserFunc {
     return struct {
-        fn is_a(input: []const u8) !IResult {
+        pub fn is_a(input: []const u8) !IResult {
             errdefer |e| ab.report(e, .{ @src().fn_name, pattern, input });
 
             if (input.len == 0) {
@@ -264,7 +264,7 @@ test is_a {
 /// Returns a sequence of bytes as a slice until the specified character is found
 pub fn is_not(needle: []const u8) ParserFunc {
     return struct {
-        fn is_not(input: []const u8) !IResult {
+        pub fn is_not(input: []const u8) !IResult {
             errdefer |e| ab.report(e, .{ @src().fn_name, needle, input });
 
             if (input.len == 0) {

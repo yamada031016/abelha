@@ -146,7 +146,7 @@ test bin_digit1 {
 /// Recognizes specified characters
 pub fn char(character: u8) ParserFunc {
     return struct {
-        fn char(input: []const u8) !IResult {
+        pub fn char(input: []const u8) !IResult {
             errdefer |e| ab.report(e, .{ @src().fn_name, &[_]u8{character}, input });
 
             switch (input.len) {
