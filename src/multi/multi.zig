@@ -11,26 +11,24 @@ const tag = ab.bytes.tag;
 const take_until = ab.bytes.take_until;
 
 /// Runs as long as the specified parser succeeds and returns the result in slices when it fails.
-pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ParseResult([]const []const u8) {
+pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ab.Result([]const []const u8) {
     return struct {
-        fn many1(input: []const u8) !ParseResult([]const []const u8) {
+        fn many1(input: []const u8) !ab.Result([]const []const u8) {
             errdefer |e| ab.report(e, .{ @src().fn_name, parser, input });
 
             var array = std.ArrayList([]const u8).init(std.heap.page_allocator);
-            var rest_input = input;
+            var rest = input;
             while (true) {
-                const result = parser(rest_input) catch {
+                rest, const result = parser(rest) catch {
                     if (array.getLastOrNull()) |_| {
-                        return ParseResult([]const []const u8){ .rest = rest_input, .result = try array.toOwnedSlice() };
+                        return .{ rest, try array.toOwnedSlice() };
                     }
                     return error.NotFound;
                 };
 
-                try array.append(result.result);
-                if (result.rest.len == 0) {
-                    return ParseResult([]const []const u8){ .rest = result.rest, .result = try array.toOwnedSlice() };
-                } else {
-                    rest_input = result.rest;
+                try array.append(result);
+                if (rest.len == 0) {
+                    return .{ rest, try array.toOwnedSlice() };
                 }
             }
         }
@@ -39,35 +37,34 @@ pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ParseResult([]const []
 
 test many1 {
     const target = "### hogehoge";
-    const result = try many1(char('#'))(target);
-    try std.testing.expectEqual(3, result.result.len);
-    try std.testing.expectEqualStrings("###", try std.mem.concat(std.heap.page_allocator, u8, result.result));
+    _, const result = try many1(char('#'))(target);
+    try std.testing.expectEqual(3, result.len);
+    try std.testing.expectEqualStrings("###", try std.mem.concat(std.heap.page_allocator, u8, result));
 }
 
 /// Run the parser `parser` until the parser `end` succeeds.
 /// If the parser `end` succeeds, return the results of the `parser` so far as a slice
-pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) ParseError!ParseResult([]const []const u8) {
+pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) ParseError!ab.Result([]const []const u8) {
     return struct {
-        fn many_till(input: []const u8) ParseError!ParseResult([]const []const u8) {
+        fn many_till(input: []const u8) ParseError!ab.Result([]const []const u8) {
             errdefer |e| ab.report(e, .{ @src().fn_name, .{ parser, end }, input });
 
             var array = std.ArrayList([]const u8).init(std.heap.page_allocator);
-            var rest_input = input;
+            var rest = input;
             while (true) {
-                const r = parser(rest_input);
+                const r = parser(rest);
                 if (r) |res| {
-                    array.append(res.result) catch {
+                    rest, var result = res;
+                    array.append(result) catch {
                         return error.OutOfMemory;
                     };
-                    if (res.rest.len == 0) {
-                        return ParseResult([]const []const u8){ .rest = res.rest, .result = try array.toOwnedSlice() };
-                    } else {
-                        rest_input = res.rest;
+                    if (rest.len == 0) {
+                        return .{ rest, try array.toOwnedSlice() };
                     }
-
-                    const facedEnd = end(rest_input);
+                    const facedEnd = end(rest);
                     if (facedEnd) |endResult| {
-                        return ParseResult([]const []const u8){ .rest = endResult.rest, .result = try array.toOwnedSlice() };
+                        rest, result = endResult;
+                        return .{ rest, try array.toOwnedSlice() };
                     } else |e| {
                         switch (e) {
                             else => {},
@@ -75,7 +72,7 @@ pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) ParseError
                     }
                 } else |_| {
                     if (array.getLastOrNull()) |_| {
-                        return ParseResult([]const []const u8){ .rest = rest_input, .result = try array.toOwnedSlice() };
+                        return .{ rest, try array.toOwnedSlice() };
                     } else {
                         // return e;
                     }
@@ -87,28 +84,25 @@ pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) ParseError
 
 /// The input is split in a sequence of bytes that is recognized by the parser `sep`, and the split elements are recognized by the parser `parser`.
 /// If `parser` fails, it returns an error, and if `sep` fails, it returns the result of `parser` so far in slices.
-pub fn separated_list1(T: type, sep: anytype, parser: anytype) fn ([]const u8) anyerror!ParseResult([]const T) {
+pub fn separated_list1(T: type, sep: anytype, parser: anytype) fn ([]const u8) anyerror!ab.Result([]const T) {
     return struct {
-        fn separated_list1(input: []const u8) !ParseResult([]const T) {
+        fn separated_list1(input: []const u8) !ab.Result([]const T) {
             // errdefer |e| ab.report(e, .{ @src().fn_name, .{T, sep, parser}, input });
 
             var array = std.ArrayList(T).init(std.heap.page_allocator);
-            var rest_input = input;
-            while (parser(rest_input)) |result| {
-                try array.append(result.result);
-                const res = sep(result.rest) catch {
-                    std.log.debug("separater at {s} failed.\n", .{result.rest});
-                    return ParseResult([]const T){ .rest = result.rest, .result = array.items };
+            var rest = input;
+            while (parser(rest)) |value| {
+                rest, const result = value;
+                try array.append(result);
+                rest, _ = sep(rest) catch {
+                    return ab.Result([]const T){ rest, array.items };
                 };
-                if (res.rest.len == 0) {
-                    std.log.debug("input is fully consumed.\n", .{});
-                    return ParseResult([]const T){ .rest = rest_input, .result = try array.toOwnedSlice() };
-                } else {
-                    rest_input = res.rest;
+                if (rest.len == 0) {
+                    return ab.Result([]const T){ rest, try array.toOwnedSlice() };
                 }
             } else |e| {
                 if (array.getLastOrNull()) |_| {
-                    return ParseResult([]const T){ .rest = rest_input, .result = try array.toOwnedSlice() };
+                    return ab.Result([]const T){ rest, try array.toOwnedSlice() };
                 } else {
                     return e;
                 }
@@ -119,7 +113,7 @@ pub fn separated_list1(T: type, sep: anytype, parser: anytype) fn ([]const u8) a
 
 test separated_list1 {
     const text = "abc|abc|abc";
-    const result = try separated_list1([]const u8, tag("|"), tag("abc"))(text);
+    _, const result = try separated_list1([]const u8, tag("|"), tag("abc"))(text);
     const answer = [_][]const u8{ "abc", "abc", "abc" };
-    try std.testing.expectEqualSlices([]const u8, &answer, result.result);
+    try std.testing.expectEqualSlices([]const u8, &answer, result);
 }

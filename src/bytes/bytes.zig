@@ -15,15 +15,16 @@ pub fn take(cnt: usize) ParserFunc {
             if (input.len < cnt) {
                 return error.InputTooShort;
             }
-            return IResult{ .rest = input[cnt..], .result = input[0..cnt] };
+            // return IResult{ .rest = input[cnt..], .result = input[0..cnt] };
+            return .{ input[cnt..], input[0..cnt] };
         }
     }.take;
 }
 
 test take {
     const target = "abcdefg";
-    const result = try take(3)(target);
-    try std.testing.expectEqualStrings("abc", result.result);
+    _, const result = try take(3)(target);
+    try std.testing.expectEqualStrings("abc", result);
 }
 
 pub fn take_till(comptime predicate: fn (val: u8) bool) ParserFunc {
@@ -33,23 +34,23 @@ pub fn take_till(comptime predicate: fn (val: u8) bool) ParserFunc {
 
             for (0..input.len) |i| {
                 if (predicate(input[i])) {
-                    return IResult{ .rest = input[i..], .result = input[0..i] };
+                    return .{ input[i..], input[0..i] };
                 }
             }
 
-            return IResult{ .rest = "", .result = input };
+            return .{ "", input };
         }
     }.take_till;
 }
 
 test take_till {
     const target = "01-1111-1111";
-    const result = try take_till(struct {
+    _, const result = try take_till(struct {
         fn lambda(val: u8) bool {
             return val == '-';
         }
     }.lambda)(target);
-    try std.testing.expectEqualStrings("01", result.result);
+    try std.testing.expectEqualStrings("01", result);
 }
 
 pub fn take_till1(comptime predicate: fn (val: u8) bool) ParserFunc {
@@ -57,32 +58,32 @@ pub fn take_till1(comptime predicate: fn (val: u8) bool) ParserFunc {
         pub fn take_till1(input: []const u8) !IResult {
             // errdefer |e| ab.report(e, .{ @src().fn_name, predicate, input });
 
-            const result = try take_till(predicate)(input);
+            const rest, const result = try take_till(predicate)(input);
 
-            if (result.result.len == 0) {
+            if (result.len == 0) {
                 return error.EmptyMatched;
             }
 
-            return result;
+            return .{ rest, result };
         }
     }.take_till1;
 }
 
 test take_till1 {
     const target = "01-1111-1111";
-    const result = try take_till1(struct {
+    const rest, const result = try take_till1(struct {
         fn lambda(val: u8) bool {
             return val == '-';
         }
     }.lambda)(target);
-    try std.testing.expectEqualStrings("01", result.result);
+    try std.testing.expectEqualStrings("01", result);
 
-    const failed_result = take_till1(struct {
+    const failed = take_till1(struct {
         fn lambda(val: u8) bool {
             return val == '-';
         }
-    }.lambda)(result.rest);
-    try std.testing.expectError(error.EmptyMatched, failed_result);
+    }.lambda)(rest);
+    try std.testing.expectError(error.EmptyMatched, failed);
 }
 
 /// Returns a sequence of bytes as slices until the specified pattern is found.
@@ -93,7 +94,7 @@ pub fn take_until(end: []const u8) ParserFunc {
 
             const index = std.mem.indexOf(u8, input, end);
             if (index) |idx| {
-                return IResult{ .rest = input[idx..], .result = input[0..idx] };
+                return .{ input[idx..], input[0..idx] };
             } else {
                 return error.NotFound;
             }
@@ -103,8 +104,8 @@ pub fn take_until(end: []const u8) ParserFunc {
 
 test take_until {
     const target = "hogehoge\n";
-    const result = try take_until("\n")(target);
-    try std.testing.expectEqualStrings("hogehoge", result.result);
+    _, const result = try take_until("\n")(target);
+    try std.testing.expectEqualStrings("hogehoge", result);
 
     const invalid_target = "hogehoge";
     const failed_result = take_until("\n")(invalid_target);
@@ -118,23 +119,23 @@ pub fn take_until1(end: []const u8) ParserFunc {
         pub fn take_until1(input: []const u8) !IResult {
             errdefer |e| ab.report(e, .{ @src().fn_name, end, input });
 
-            const result = try take_until(end)(input);
+            const rest, const result = try take_until(end)(input);
 
-            if (result.result.len == 0) {
+            if (result.len == 0) {
                 return error.EmptyMatched;
             }
 
-            return result;
+            return .{ rest, result };
         }
     }.take_until1;
 }
 
 test take_until1 {
     const target = "hogehoge\nhogehoge";
-    const result = try take_until1("\n")(target);
-    try std.testing.expectEqualStrings("hogehoge", result.result);
+    const rest, const result = try take_until1("\n")(target);
+    try std.testing.expectEqualStrings("hogehoge", result);
 
-    const failed_result = take_until1("\n")(result.rest);
+    const failed_result = take_until1("\n")(rest);
     try std.testing.expectError(error.EmptyMatched, failed_result);
 }
 
@@ -152,7 +153,7 @@ pub fn tag(needle: []const u8) ParserFunc {
             }
 
             if (std.mem.eql(u8, input[0..needle.len], needle)) {
-                return IResult{ .rest = input[needle.len..], .result = needle };
+                return .{ input[needle.len..], needle };
             } else {
                 return error.NotFound;
             }
@@ -162,8 +163,8 @@ pub fn tag(needle: []const u8) ParserFunc {
 
 test tag {
     const target = "abcdefg";
-    const result = try tag("abc")(target);
-    try std.testing.expectEqualStrings("abc", result.result);
+    _, const result = try tag("abc")(target);
+    try std.testing.expectEqualStrings("abc", result);
 }
 
 pub fn tag_ignore_case(needle: []const u8) ParserFunc {
@@ -176,7 +177,7 @@ pub fn tag_ignore_case(needle: []const u8) ParserFunc {
             }
 
             if (std.ascii.eqlIgnoreCase(input[0..needle.len], needle)) {
-                return IResult{ .rest = input[needle.len..], .result = input[0..needle.len] };
+                return .{ input[needle.len..], input[0..needle.len] };
             } else {
                 return error.NotFound;
             }
@@ -186,8 +187,8 @@ pub fn tag_ignore_case(needle: []const u8) ParserFunc {
 
 test tag_ignore_case {
     const target = "AbCdEfG";
-    const result = try tag_ignore_case("abc")(target);
-    try std.testing.expectEqualStrings("AbC", result.result);
+    _, const result = try tag_ignore_case("abc")(target);
+    try std.testing.expectEqualStrings("AbC", result);
 }
 
 /// Matches a byte string with escaped characters.
@@ -196,32 +197,31 @@ pub fn escaped(normal: ParserFunc, escapable: ParserFunc) ParserFunc {
         pub fn escaped(input: []const u8) !IResult {
             // errdefer |e| ab.report(e, .{ @src().fn_name, .{ normal, escapable }, input });
 
-            const result = try normal(input);
+            var rest, var result = try normal(input);
 
             var escaped_str = std.ArrayList(u8).init(std.heap.page_allocator);
-            try escaped_str.appendSlice(result.result);
-            var rest = result.rest;
+            try escaped_str.appendSlice(result);
 
             while (escapable(rest)) |_result| {
-                try escaped_str.appendSlice(_result.result);
-                const res = try normal(_result.rest);
-                try escaped_str.appendSlice(res.result);
-                rest = res.rest;
+                rest, result = _result;
+                try escaped_str.appendSlice(result);
+                rest, result = try normal(rest);
+                try escaped_str.appendSlice(result);
             } else |_| {}
 
-            return IResult{ .rest = rest, .result = try escaped_str.toOwnedSlice() };
+            return .{ rest, try escaped_str.toOwnedSlice() };
         }
     }.escaped;
 }
 
 test escaped {
     const target = "ab\nab";
-    var result = try escaped(tag("ab"), ab.character.char('\n'))(target);
-    try std.testing.expectEqualStrings("ab\nab", result.result);
+    _, var result = try escaped(tag("ab"), ab.character.char('\n'))(target);
+    try std.testing.expectEqualStrings("ab\nab", result);
 
     const target2 = "abab";
-    result = try escaped(tag("ab"), ab.character.char('\n'))(target2);
-    try std.testing.expectEqualStrings("ab", result.result);
+    _, result = try escaped(tag("ab"), ab.character.char('\n'))(target2);
+    try std.testing.expectEqualStrings("ab", result);
 }
 
 /// Returns the longest slice of the matches the pattern.
@@ -245,7 +245,7 @@ pub fn is_a(pattern: []const u8) ParserFunc {
             if (i == 0) {
                 return error.NotFound;
             } else {
-                return IResult{ .rest = input[i..], .result = input[0..i] };
+                return .{ input[i..], input[0..i] };
             }
         }
     }.is_a;
@@ -253,12 +253,12 @@ pub fn is_a(pattern: []const u8) ParserFunc {
 
 test is_a {
     const target = "123 and 321";
-    const result = try is_a("1234567890ABCDEF")(target);
-    try std.testing.expectEqualStrings("123", result.result);
+    _, var result = try is_a("1234567890ABCDEF")(target);
+    try std.testing.expectEqualStrings("123", result);
 
     const target2 = "DEBACFG";
-    const result2 = try is_a("1234567890ABCDEF")(target2);
-    try std.testing.expectEqualStrings("DEBACF", result2.result);
+    _, result = try is_a("1234567890ABCDEF")(target2);
+    try std.testing.expectEqualStrings("DEBACF", result);
 }
 
 /// Returns a sequence of bytes as a slice until the specified character is found
@@ -274,21 +274,21 @@ pub fn is_not(needle: []const u8) ParserFunc {
             for (input, 0..) |c, i| {
                 for (needle) |n| {
                     if (c == n) {
-                        return IResult{ .rest = input[i..], .result = input[0..i] };
+                        return .{ input[i..], input[0..i] };
                     }
                 }
             }
-            return IResult{ .rest = "", .result = input };
+            return IResult{ "", input };
         }
     }.is_not;
 }
 
 test is_not {
     const target = "123 and 321";
-    const result = try is_not(" \n\t\r")(target);
-    try std.testing.expectEqualStrings("123", result.result);
+    _, var result = try is_not(" \n\t\r")(target);
+    try std.testing.expectEqualStrings("123", result);
 
     const target2 = "DEBACF";
-    const result2 = try is_not(" \n\t\r")(target2);
-    try std.testing.expectEqualStrings("DEBACF", result2.result);
+    _, result = try is_not(" \n\t\r")(target2);
+    try std.testing.expectEqualStrings("DEBACF", result);
 }

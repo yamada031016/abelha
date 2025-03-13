@@ -1,5 +1,4 @@
 //! Abelha
-
 const std = @import("std");
 
 pub const branch = @import("branch/branch.zig");
@@ -17,20 +16,10 @@ pub fn ParseResult(T: anytype) type {
     };
 }
 
-pub fn ResultType(T: anytype) type {
+pub fn Result(T: anytype) type {
     return struct {
         []const u8,
         T,
-    };
-}
-
-pub fn Result(T: anytype) type {
-    return union(enum) {
-        Ok: ResultType(T),
-        Err: struct {
-            pos: usize,
-            message: []const u8,
-        },
     };
 }
 
@@ -48,7 +37,14 @@ pub const ParseError = error{
     IntegerOverflow,
 } || std.mem.Allocator.Error;
 
-const ParserArgType = union(enum) { Unit: void, String: []const u8, ParserFunc: ParserFunc, Tuple: void, Type: type, Other: void };
+const ParserArgType = union(enum) {
+    Unit: void,
+    String: []const u8,
+    ParserFunc: ParserFunc,
+    Tuple: void,
+    Type: type,
+    Other: void,
+};
 fn examineArgType(arg: anytype) ParserArgType {
     switch (@typeInfo(@TypeOf(arg))) {
         .pointer => |pointer| {
@@ -82,9 +78,6 @@ fn examineArgType(arg: anytype) ParserArgType {
 // args[2]: parse function input
 // args[3..]: optional infomation
 pub fn report(err: anyerror, args: anytype) void {
-    switch (err) {
-        else => {},
-    }
     if (comptime (@import("builtin").mode == .Debug or @import("builtin").mode == .ReleaseSafe)) {
         const argType = examineArgType(args[1]);
         switch (err) {
@@ -282,9 +275,8 @@ pub fn report(err: anyerror, args: anytype) void {
     }
 }
 
-/// Basic Result type of parser
-pub const IResult = ParseResult([]const u8);
-
+// pub const IResult = ParseResult([]const u8);
+pub const IResult = Result([]const u8);
 /// Basic function signature of parser
 pub const ParserFunc = fn ([]const u8) anyerror!IResult;
 
@@ -296,12 +288,12 @@ pub fn prohibitEmptyResult(name: []const u8, parser: ParserFunc, input: []const 
         return error.InputTooShort;
     }
 
-    const result = try parser(input);
-    if (result.result.len == 0) {
+    const rest, const result = try parser(input);
+    if (result.len == 0) {
         return error.EmptyMatched;
     }
 
-    return result;
+    return .{ rest, result };
 }
 
 pub fn TestCase(comptime T: type) type {

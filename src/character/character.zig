@@ -24,16 +24,16 @@ pub fn alpha0(input: []const u8) !IResult {
         pos = input.len;
     }
 
-    return IResult{ .rest = input[pos..], .result = input[0..pos] };
+    return .{ input[pos..], input[0..pos] };
 }
 
 test alpha0 {
     const target = "abc123";
-    const result = try alpha0(target);
-    try std.testing.expectEqualStrings("abc", result.result);
+    const rest, var result = try alpha0(target);
+    try std.testing.expectEqualStrings("abc", result);
 
-    const empty_result = try alpha0(result.rest); // rest=123
-    try std.testing.expectEqualStrings("", empty_result.result);
+    _, result = try alpha0(rest); // rest=123
+    try std.testing.expectEqualStrings("", result);
 }
 
 /// Recognizes ASCII alphabetic characters regardless of Case
@@ -43,11 +43,11 @@ pub fn alpha1(input: []const u8) !IResult {
 
 test alpha1 {
     const target = "abc123";
-    const result = try alpha1(target);
-    try std.testing.expectEqualStrings("abc", result.result);
+    const rest, const result = try alpha1(target);
+    try std.testing.expectEqualStrings("abc", result);
 
-    const failed_result = alpha1(result.rest); // rest=123
-    try std.testing.expectError(error.EmptyMatched, failed_result);
+    const failed = alpha1(rest); // rest=123
+    try std.testing.expectError(error.EmptyMatched, failed);
 }
 
 /// Recognizes zero or more ASCII alphanumeric characters regardless of Case
@@ -65,13 +65,13 @@ pub fn alphanumeric0(input: []const u8) !IResult {
         pos = input.len;
     }
 
-    return IResult{ .rest = input[pos..], .result = input[0..pos] };
+    return .{ input[pos..], input[0..pos] };
 }
 
 test alphanumeric0 {
     const target = "123abc";
-    const result = try alphanumeric0(target);
-    try std.testing.expectEqualStrings("123abc", result.result);
+    _, const result = try alphanumeric0(target);
+    try std.testing.expectEqualStrings("123abc", result);
 }
 
 /// Recognizes ASCII alphanumeric characters regardless of Case
@@ -81,11 +81,11 @@ pub fn alphanumeric1(input: []const u8) !IResult {
 
 test alphanumeric1 {
     const target = "123abc";
-    const result = try alphanumeric1(target);
-    try std.testing.expectEqualStrings("123abc", result.result);
+    const rest, const result = try alphanumeric1(target);
+    try std.testing.expectEqualStrings("123abc", result);
 
-    const failed_result = alphanumeric1(result.rest); // rest=""
-    try std.testing.expectError(error.InputTooShort, failed_result);
+    const failed = alphanumeric1(rest); // rest=""
+    try std.testing.expectError(error.InputTooShort, failed);
 }
 
 /// Recognizes one any character
@@ -94,15 +94,15 @@ pub fn anychar(input: []const u8) !IResult {
 
     switch (input.len) {
         0 => return error.InputTooShort,
-        1 => return IResult{ .rest = "", .result = input[0..1] },
-        else => return IResult{ .rest = input[1..], .result = input[0..1] },
+        1 => return .{ "", input[0..1] },
+        else => return .{ input[1..], input[0..1] },
     }
 }
 
 test anychar {
     const target = "hoge";
-    const result = try anychar(target);
-    try std.testing.expectEqualStrings("h", result.result);
+    _, const result = try anychar(target);
+    try std.testing.expectEqualStrings("h", result);
 }
 
 /// Recognizes zero or more binary characters: 0-1.
@@ -123,13 +123,13 @@ pub fn bin_digit0(input: []const u8) !IResult {
         pos = input.len;
     }
 
-    return IResult{ .rest = input[pos..], .result = input[0..pos] };
+    return .{ input[pos..], input[0..pos] };
 }
 
 test bin_digit0 {
     const target = "010101*101";
-    const result = try bin_digit0(target);
-    try std.testing.expectEqualStrings("010101", result.result);
+    _, const result = try bin_digit0(target);
+    try std.testing.expectEqualStrings("010101", result);
 }
 
 /// Recognizes binary characters: 0-1.
@@ -139,8 +139,8 @@ pub fn bin_digit1(input: []const u8) !IResult {
 
 test bin_digit1 {
     const target = "010101*101";
-    const result = try bin_digit1(target);
-    try std.testing.expectEqualStrings("010101", result.result);
+    _, const result = try bin_digit1(target);
+    try std.testing.expectEqualStrings("010101", result);
 }
 
 /// Recognizes specified characters
@@ -153,12 +153,12 @@ pub fn char(character: u8) ParserFunc {
                 0 => {},
                 1 => {
                     if (input[0] == character) {
-                        return IResult{ .rest = "", .result = input };
+                        return .{ "", input };
                     }
                 },
                 else => {
                     if (input[0] == character) {
-                        return IResult{ .rest = input[1..], .result = input[0..1] };
+                        return .{ input[1..], input[0..1] };
                     }
                 },
             }
@@ -169,8 +169,8 @@ pub fn char(character: u8) ParserFunc {
 
 test char {
     const target = "#hogehoge";
-    const result = try char('#')(target);
-    try std.testing.expectEqualStrings("#", result.result);
+    _, const result = try char('#')(target);
+    try std.testing.expectEqualStrings("#", result);
 }
 
 /// Recognizes one or more specified hexadecimal numbers
@@ -182,11 +182,11 @@ pub fn crlf(input: []const u8) !IResult {
 
 test crlf {
     const target = "\r\nnewline";
-    const result = try crlf(target);
-    try std.testing.expectEqualStrings("\r\n", result.result);
+    const rest, const result = try crlf(target);
+    try std.testing.expectEqualStrings("\r\n", result);
 
-    const failed_result = crlf(result.rest); // rest=newline
-    try std.testing.expectError(error.NotFound, failed_result);
+    const failed = crlf(rest); // rest=newline
+    try std.testing.expectError(error.NotFound, failed);
 }
 
 /// Recognizes zero or more ASCII numerical characters.
@@ -204,16 +204,16 @@ pub fn digit0(input: []const u8) !IResult {
         pos = input.len;
     }
 
-    return IResult{ .rest = input[pos..], .result = input[0..pos] };
+    return .{ input[pos..], input[0..pos] };
 }
 
 test digit0 {
     const target = "123abc";
-    const result = try digit0(target);
-    try std.testing.expectEqualStrings("123", result.result);
+    const rest, var result = try digit0(target);
+    try std.testing.expectEqualStrings("123", result);
 
-    const empty_result = try digit0(result.rest); // rest=abc
-    try std.testing.expectEqualStrings("", empty_result.result);
+    _, result = try digit0(rest); // rest=abc
+    try std.testing.expectEqualStrings("", result);
 }
 
 /// Recognizes ASCII numerical characters.
@@ -223,11 +223,11 @@ pub fn digit1(input: []const u8) !IResult {
 
 test digit1 {
     const target = "123abc";
-    const result = try digit1(target);
-    try std.testing.expectEqualStrings("123", result.result);
+    const rest, const result = try digit1(target);
+    try std.testing.expectEqualStrings("123", result);
 
-    const failed_result = digit1(result.rest); // rest=abc
-    try std.testing.expectError(error.EmptyMatched, failed_result);
+    const failed = digit1(rest); // rest=abc
+    try std.testing.expectError(error.EmptyMatched, failed);
 }
 
 /// Recognizes zero or more specified hexadecimal numbers
@@ -245,16 +245,16 @@ pub fn hexDigit0(input: []const u8) !IResult {
         pos = input.len;
     }
 
-    return IResult{ .rest = input[pos..], .result = input[0..pos] };
+    return .{ input[pos..], input[0..pos] };
 }
 
 test hexDigit0 {
     const target = "123aBcG";
-    const result = try hexDigit0(target);
-    try std.testing.expectEqualStrings("123aBc", result.result);
+    const rest, var result = try hexDigit0(target);
+    try std.testing.expectEqualStrings("123aBc", result);
 
-    const empty_result = try hexDigit0(result.rest); // rest=G
-    try std.testing.expectEqualStrings("", empty_result.result);
+    _, result = try hexDigit0(rest); // rest=G
+    try std.testing.expectEqualStrings("", result);
 }
 
 /// Recognizes zero or more specified hexadecimal numbers
@@ -264,10 +264,10 @@ pub fn hexDigit1(input: []const u8) !IResult {
 
 test hexDigit1 {
     const target = "123aBcG";
-    const result = try hexDigit1(target);
-    try std.testing.expectEqualStrings("123aBc", result.result);
+    const rest, const result = try hexDigit1(target);
+    try std.testing.expectEqualStrings("123aBc", result);
 
-    const failed_result = hexDigit1(result.rest); // rest=G
+    const failed_result = hexDigit1(rest); // rest=G
     try std.testing.expectError(error.EmptyMatched, failed_result);
 }
 
@@ -290,16 +290,16 @@ pub fn octDigit0(input: []const u8) !IResult {
         pos = input.len;
     }
 
-    return IResult{ .rest = input[pos..], .result = input[0..pos] };
+    return .{ input[pos..], input[0..pos] };
 }
 
 test octDigit0 {
     const target = "12345678";
-    const result = try octDigit0(target);
-    try std.testing.expectEqualStrings("1234567", result.result);
+    const rest, var result = try octDigit0(target);
+    try std.testing.expectEqualStrings("1234567", result);
 
-    const empty_result = try octDigit0(result.rest); // rest=8
-    try std.testing.expectEqualStrings("", empty_result.result);
+    _, result = try octDigit0(rest); // rest=8
+    try std.testing.expectEqualStrings("", result);
 }
 
 /// Recognizes zero or more specified oxtal numbers
@@ -309,14 +309,14 @@ pub fn octDigit1(input: []const u8) !IResult {
 
 test octDigit1 {
     const target = "12345678";
-    const result = try octDigit1(target);
-    try std.testing.expectEqualStrings("1234567", result.result);
+    const rest, const result = try octDigit1(target);
+    try std.testing.expectEqualStrings("1234567", result);
 
-    const failed_result = octDigit1(result.rest); // rest=8
+    const failed_result = octDigit1(rest); // rest=8
     try std.testing.expectError(error.EmptyMatched, failed_result);
 }
 
-fn parseNumber(comptime T: type, input: []const u8) !ab.ParseResult(T) {
+fn parseNumber(comptime T: type, input: []const u8) !ab.Result(T) {
     errdefer |e| ab.report(e, .{ @src().fn_name, T, input });
 
     if (input.len == 0) return error.InputTooShort;
@@ -393,7 +393,7 @@ fn parseNumber(comptime T: type, input: []const u8) !ab.ParseResult(T) {
     }
 
     if (!found) return error.NotFound;
-    return ab.ParseResult(T){ .result = result, .rest = input[i..] };
+    return .{ input[i..], result };
 }
 
 test parseNumber {
@@ -422,9 +422,9 @@ test parseNumber {
     for (cases) |case| {
         const res = parseNumber(i64, case.input);
         if (case.expected_value) |expected| {
-            const parsed = res catch unreachable;
-            try testing.expectEqual(expected, parsed.result);
-            try testing.expectEqualSlices(u8, case.expected_rest, parsed.rest);
+            const rest, const result = res catch unreachable;
+            try testing.expectEqual(expected, result);
+            try testing.expectEqualSlices(u8, case.expected_rest, rest);
         } else |expect_error| {
             try testing.expectError(expect_error, res);
         }
@@ -434,7 +434,7 @@ test parseNumber {
 /// Recognizes `\n`.
 pub fn newline(input: []const u8) !IResult {
     if (char('\n')(input)) |result| {
-        return IResult{ .rest = result.rest, .result = result.result };
+        return .{ result.rest, result.result };
     } else |e| {
         return e;
     }
@@ -442,13 +442,14 @@ pub fn newline(input: []const u8) !IResult {
 
 /// Recognizes both `\n` and `\r\n`.
 pub fn line_ending(input: []const u8) !IResult {
-    if (char('\n')(input)) |result| {
-        return IResult{ .rest = result.rest, .result = result.result };
+    if (char('\n')(input)) |value| {
+        const rest, const result = value;
+        return .{ rest, result };
     } else |e| {
         switch (e) {
             error.NotFound => {
-                const result = try tag("\r\n")(input);
-                return IResult{ .rest = result.rest, .result = result.result };
+                const rest, const result = try tag("\r\n")(input);
+                return .{ rest, result };
             },
             else => return e,
         }
@@ -460,10 +461,10 @@ pub fn not_line_ending(input: []const u8) !IResult {
     var i: usize = 0;
     while (i < input.len) : (i += 1) {
         switch (input[i]) {
-            '\n' => return IResult{ .rest = input[i..], .result = input[0..i] },
+            '\n' => return .{ input[i..], input[0..i] },
             '\r' => {
                 if (i + 1 < input.len and input[i + 1] == '\n') {
-                    return IResult{ .rest = input[i..], .result = input[0..i] };
+                    return .{ input[i..], input[0..i] };
                 } else {
                     return error.InvalidCharacter;
                 }
@@ -471,7 +472,7 @@ pub fn not_line_ending(input: []const u8) !IResult {
             else => {},
         }
     }
-    return IResult{ .rest = "", .result = input };
+    return .{ "", input };
 }
 
 test not_line_ending {
@@ -489,9 +490,9 @@ test not_line_ending {
     for (cases) |case| {
         const res = not_line_ending(case.input);
         if (case.expected_value) |expected| {
-            const parsed = res catch unreachable;
-            try testing.expectEqualStrings(expected, parsed.result);
-            try testing.expectEqualStrings(case.expected_rest, parsed.rest);
+            const rest, const result = res catch unreachable;
+            try testing.expectEqualStrings(expected, result);
+            try testing.expectEqualStrings(case.expected_rest, rest);
         } else |expect_error| {
             try testing.expectError(expect_error, res);
         }
@@ -506,8 +507,8 @@ test not_line_ending {
 
 // Recognizes spaces, tabs, carriage returns and line endings.
 pub fn multispace1(input: []const u8) !IResult {
-    const result = try many1(ab.bytes.is_a(" \t\r\n"))(input);
-    return IResult{ .rest = result.rest, .result = try std.mem.concat(std.heap.page_allocator, u8, result.result) };
+    const rest, const result = try many1(ab.bytes.is_a(" \t\r\n"))(input);
+    return .{ rest, try std.mem.concat(std.heap.page_allocator, u8, result) };
 }
 
 // Recognizes zero or more spaces and tabs.
@@ -518,14 +519,14 @@ pub fn multispace1(input: []const u8) !IResult {
 
 // Recognizes spaces and tabs.
 pub fn space1(input: []const u8) !IResult {
-    const result = try many1(ab.bytes.is_a(" \t"))(input);
-    return IResult{ .rest = result.rest, .result = try std.mem.concat(std.heap.page_allocator, u8, result.result) };
+    const rest, const result = try many1(ab.bytes.is_a(" \t"))(input);
+    return .{ rest, try std.mem.concat(std.heap.page_allocator, u8, result) };
 }
 
 // Recognizes tabs.
 pub fn tab(input: []const u8) !IResult {
-    const result = try char('\t')(input);
-    return IResult{ .rest = result.rest, .result = result.result };
+    const rest, const result = try char('\t')(input);
+    return .{ rest, result };
 }
 
 // pub fn none_of(prohibit_str: []const u8) ParserFunc {
@@ -553,9 +554,9 @@ pub fn tab(input: []const u8) !IResult {
 // }
 
 /// Recognizes one of provided pattern character.
-pub fn one_of(pattern: []const u8) fn ([]const u8) anyerror!ParseResult(u8) {
+pub fn one_of(pattern: []const u8) fn ([]const u8) anyerror!ab.Result(u8) {
     return struct {
-        fn one_of(input: []const u8) !ParseResult(u8) {
+        fn one_of(input: []const u8) !ab.Result(u8) {
             errdefer |e| ab.report(e, .{ @src().fn_name, pattern, input });
 
             if (input.len == 0) {
@@ -568,7 +569,7 @@ pub fn one_of(pattern: []const u8) fn ([]const u8) anyerror!ParseResult(u8) {
             }
 
             if (bitmask[input[0]]) {
-                return ParseResult(u8){ .rest = input[1..], .result = input[0] };
+                return .{ input[1..], input[0] };
             } else {
                 return error.NotFound;
             }
@@ -588,9 +589,9 @@ test one_of {
     for (cases) |case| {
         const res = one_of("abc")(case.input);
         if (case.expected_value) |expected| {
-            const parsed = res catch unreachable;
-            try testing.expectEqual(expected, parsed.result);
-            try testing.expectEqualSlices(u8, case.expected_rest, parsed.rest);
+            const rest, const result = res catch unreachable;
+            try testing.expectEqual(expected, result);
+            try testing.expectEqualSlices(u8, case.expected_rest, rest);
         } else |expect_error| {
             try testing.expectError(expect_error, res);
         }

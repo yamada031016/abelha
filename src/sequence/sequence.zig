@@ -16,28 +16,27 @@ const take_until = ab.bytes.take_until;
 pub fn delimited(start: ParserFunc, content: ParserFunc, end: ParserFunc) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {
-            var result = try start(input);
-            result = try content(result.rest);
-            const text = result.result;
-            result = try end(result.rest);
-            return IResult{ .rest = result.rest, .result = text };
+            var rest, _ = try start(input);
+            rest, const result = try content(rest);
+            rest, _ = try end(rest);
+            return .{ rest, result };
         }
     }.parse;
 }
 
 test delimited {
     const target = "<h1>";
-    const result = try delimited(tag("<"), take_until(">"), tag(">"))(target);
-    try std.testing.expectEqualStrings("h1", result.result);
+    _, const result = try delimited(tag("<"), take_until(">"), tag(">"))(target);
+    try std.testing.expectEqualStrings("h1", result);
 }
 
 /// Discard elements recognized by the parser `first` and return the next element recognized by the parser `second` as the result.
 pub fn preceded(first: ParserFunc, second: ParserFunc) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {
-            var result = try first(input);
-            result = try second(result.rest);
-            return IResult{ .rest = result.rest, .result = result.result };
+            var rest, _ = try first(input);
+            rest, const result = try second(rest);
+            return .{ rest, result };
         }
     }.parse;
 }
@@ -51,4 +50,3 @@ pub fn preceded(first: ParserFunc, second: ParserFunc) ParserFunc {
 //         }
 //     }.parse;
 // }
-

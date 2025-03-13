@@ -9,7 +9,7 @@ const ParseResult = ab.ParseResult;
 /// Recognizes that the input has reached the end of the line.
 pub fn eof(input: []const u8) !IResult {
     if (input.len == 0) {
-        return IResult{ .rest = "", .result = "" };
+        return .{ "", "" };
     } else {
         return ParseError.NotFound;
     }
@@ -19,8 +19,8 @@ pub fn eof(input: []const u8) !IResult {
 pub fn peek(parser: ParserFunc) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {
-            const result = try parser(input);
-            return IResult{ .rest = input, .result = result.result };
+            _, const result = try parser(input);
+            return .{ input, result };
         }
     }.parse;
 }
@@ -29,12 +29,11 @@ pub fn peek(parser: ParserFunc) ParserFunc {
 pub fn not(expect_fail_parser: ParserFunc) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {
-            const result = expect_fail_parser(input);
-            if (result) |_| {
+            if (expect_fail_parser(input)) |_| {
                 return ParseError.NotFound;
             } else |e| {
                 switch (e) {
-                    else => return IResult{ .rest = input, .result = "" },
+                    else => return .{ input, "" },
                 }
             }
         }
@@ -45,12 +44,12 @@ pub fn not(expect_fail_parser: ParserFunc) ParserFunc {
 pub fn opt(opt_parser: ParserFunc) ParserFunc {
     return struct {
         fn parse(input: []const u8) !IResult {
-            const result = opt_parser(input);
-            if (result) |res| {
-                return IResult{ .rest = res.rest, .result = res.result };
+            if (opt_parser(input)) |res| {
+                const rest, const result = res;
+                return .{ rest, result };
             } else |e| {
                 switch (e) {
-                    else => return IResult{ .rest = input, .result = "" },
+                    else => return .{ input, "" },
                 }
             }
         }
