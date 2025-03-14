@@ -21,6 +21,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = .ReleaseFast,
     });
+    abelha_mod.addOptions("config", options);
 
     exe.root_module.addImport("abelha", abelha_mod);
 
