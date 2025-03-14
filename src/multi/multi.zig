@@ -11,9 +11,9 @@ const tag = ab.bytes.tag;
 const take_until = ab.bytes.take_until;
 
 /// Runs as long as the specified parser succeeds and returns the result in slices when it fails.
-pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ab.Result([]const []const u8) {
+pub fn many0(parser: ParserFunc) fn ([]const u8) anyerror!ab.Result([]const []const u8) {
     return struct {
-        fn many1(input: []const u8) !ab.Result([]const []const u8) {
+        fn many0(input: []const u8) !ab.Result([]const []const u8) {
             errdefer |e| ab.report(e, .{ @src().fn_name, parser, input });
 
             var array = std.ArrayList([]const u8).init(std.heap.page_allocator);
@@ -30,6 +30,30 @@ pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ab.Result([]const []co
                 if (rest.len == 0) {
                     return .{ rest, try array.toOwnedSlice() };
                 }
+            }
+        }
+    }.many0;
+}
+
+test many0 {
+    const target = "### hogehoge";
+    _, const result = try many0(char('#'))(target);
+    try std.testing.expectEqual(3, result.len);
+    try std.testing.expectEqualStrings("###", try std.mem.concat(std.heap.page_allocator, u8, result));
+}
+
+/// Runs as long as the specified parser succeeds and returns the result in slices when it fails.
+pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ab.Result([]const []const u8) {
+    return struct {
+        fn many1(input: []const u8) !ab.Result([]const []const u8) {
+            errdefer |e| ab.report(e, .{ @src().fn_name, parser, input });
+
+            const rest, const result = try ab.prohibitEmptyResult("many0", many0, input);
+
+            if (result.len == 0) {
+                return error.NotFound;
+            } else {
+                return .{ rest, result };
             }
         }
     }.many1;

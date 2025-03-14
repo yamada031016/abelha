@@ -500,27 +500,25 @@ test not_line_ending {
 }
 
 // Recognizes zero or more spaces, tabs, carriage returns and line endings.
-// pub fn multispace0(input: []const u8) !IResult {
-// const result = try many0(ab.bytes.is_a(" \t\r\n"))(input);
-// return IResult{ .rest = result.rest, .result = try std.mem.concat(std.heap.page_allocator, u8, result.result) };
-// }
-
-// Recognizes spaces, tabs, carriage returns and line endings.
-pub fn multispace1(input: []const u8) !IResult {
-    const rest, const result = try many1(ab.bytes.is_a(" \t\r\n"))(input);
+pub fn multispace0(input: []const u8) !IResult {
+    const rest, const result = try ab.multi.many0(ab.bytes.is_a(" \t\r\n"))(input);
     return .{ rest, try std.mem.concat(std.heap.page_allocator, u8, result) };
 }
 
+// Recognizes spaces, tabs, carriage returns and line endings.
+pub fn multispace1(input: []const u8) !IResult {
+    return try ab.prohibitEmptyResult("multispace1", multispace0, input);
+}
+
 // Recognizes zero or more spaces and tabs.
-// pub fn space0(input: []const u8) !IResult {
-//     const result = try many0(char(' '))(input);
-//     return IResult{ .rest = result.rest, .result = try std.mem.concat(std.heap.page_allocator, u8, result.result) };
-// }
+pub fn space0(input: []const u8) !IResult {
+    const rest, const result = try ab.multi.many0(char(' '))(input);
+    return .{ rest, try std.mem.concat(std.heap.page_allocator, u8, result) };
+}
 
 // Recognizes spaces and tabs.
 pub fn space1(input: []const u8) !IResult {
-    const rest, const result = try many1(ab.bytes.is_a(" \t"))(input);
-    return .{ rest, try std.mem.concat(std.heap.page_allocator, u8, result) };
+    return try ab.prohibitEmptyResult("space1", space0, input);
 }
 
 // Recognizes tabs.
