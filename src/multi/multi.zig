@@ -102,10 +102,10 @@ pub fn many_till(parser: ParserFunc, end: ParserFunc) fn ([]const u8) ParseError
 
 /// The input is split in a sequence of bytes that is recognized by the parser `sep`, and the split elements are recognized by the parser `parser`.
 /// If `parser` fails, it returns an error, and if `sep` fails, it returns the result of `parser` so far in slices.
-pub fn separated_list1(T: type, sep: anytype, parser: anytype) fn ([]const u8) anyerror!ab.Result([]const T) {
+pub fn separated_list0(T: type, sep: anytype, parser: anytype) fn ([]const u8) anyerror!ab.Result([]const T) {
     return struct {
-        fn separated_list1(input: []const u8) !ab.Result([]const T) {
-            // errdefer |e| ab.report(e, .{ @src().fn_name, .{T, sep, parser}, input });
+        fn separated_list0(input: []const u8) !ab.Result([]const T) {
+            // errdefer |e| ab.report(e, .{ @src().fn_name, .{ T, sep, parser }, input });
 
             var array = std.ArrayList(T).init(std.heap.page_allocator);
             var rest = input;
@@ -126,12 +126,26 @@ pub fn separated_list1(T: type, sep: anytype, parser: anytype) fn ([]const u8) a
                 }
             }
         }
+    }.separated_list0;
+}
+
+pub fn separated_list1(T: type, sep: anytype, parser: anytype) fn ([]const u8) anyerror!ab.Result([]const T) {
+    return struct {
+        fn separated_list1(input: []const u8) !ab.Result([]const T) {
+            // errdefer |e| ab.report(e, .{ @src().fn_name, .{ T, sep, parser }, input });
+
+            return try ab.prohibitEmptyResult([]const []const u8, "separated_list0", separated_list0(T, sep, parser), input);
+        }
     }.separated_list1;
 }
 
 test separated_list1 {
     const text = "abc|abc|abc";
-    _, const result = try separated_list1([]const u8, tag("|"), tag("abc"))(text);
+    _, var result = try separated_list1([]const u8, tag("|"), tag("abc"))(text);
     const answer = [_][]const u8{ "abc", "abc", "abc" };
     try std.testing.expectEqualSlices([]const u8, &answer, result);
+    const text2 = "abc123abc";
+    _, result = try separated_list1([]const u8, tag("|"), tag("abc"))(text2);
+    const answer2 = [_][]const u8{"abc"};
+    try std.testing.expectEqualSlices([]const u8, &answer2, result);
 }
