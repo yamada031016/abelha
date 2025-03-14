@@ -433,8 +433,8 @@ test parseNumber {
 
 /// Recognizes `\n`.
 pub fn newline(input: []const u8) !IResult {
-    if (char('\n')(input)) |result| {
-        return .{ result.rest, result.result };
+    if (char('\n')(input)) |value| {
+        return value;
     } else |e| {
         return e;
     }
