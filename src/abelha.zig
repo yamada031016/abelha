@@ -278,10 +278,13 @@ pub fn report(err: anyerror, args: anytype) void {
 // pub const IResult = ParseResult([]const u8);
 pub const IResult = Result([]const u8);
 /// Basic function signature of parser
-pub const ParserFunc = fn ([]const u8) anyerror!IResult;
+pub const ParserFunc = ParserFnType([]const u8);
+pub fn ParserFnType(comptime T: type) type {
+    return fn ([]const u8) anyerror!Result(T);
+}
 
 // helper function to generate **1() parser, such as alpha1.
-pub fn prohibitEmptyResult(name: []const u8, parser: ParserFunc, input: []const u8) !IResult {
+pub fn prohibitEmptyResult(comptime T: type, name: []const u8, parser: ParserFnType(T), input: []const u8) !Result(T) {
     errdefer |e| report(e, .{ name, .{}, input });
 
     if (input.len == 0) {

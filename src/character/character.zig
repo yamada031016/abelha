@@ -38,7 +38,7 @@ test alpha0 {
 
 /// Recognizes ASCII alphabetic characters regardless of Case
 pub fn alpha1(input: []const u8) !IResult {
-    return try ab.prohibitEmptyResult("alpha1", alpha0, input);
+    return try ab.prohibitEmptyResult([]const u8, "alpha1", alpha0, input);
 }
 
 test alpha1 {
@@ -76,7 +76,7 @@ test alphanumeric0 {
 
 /// Recognizes ASCII alphanumeric characters regardless of Case
 pub fn alphanumeric1(input: []const u8) !IResult {
-    return try ab.prohibitEmptyResult("alphanumeric1", alphanumeric0, input);
+    return try ab.prohibitEmptyResult([]const u8, "alphanumeric1", alphanumeric0, input);
 }
 
 test alphanumeric1 {
@@ -134,7 +134,7 @@ test bin_digit0 {
 
 /// Recognizes binary characters: 0-1.
 pub fn bin_digit1(input: []const u8) !IResult {
-    return try ab.prohibitEmptyResult("bin_digit1", bin_digit0, input);
+    return try ab.prohibitEmptyResult([]const u8, "bin_digit1", bin_digit0, input);
 }
 
 test bin_digit1 {
@@ -218,7 +218,7 @@ test digit0 {
 
 /// Recognizes ASCII numerical characters.
 pub fn digit1(input: []const u8) !IResult {
-    return try ab.prohibitEmptyResult("digit1", digit0, input);
+    return try ab.prohibitEmptyResult([]const u8, "digit1", digit0, input);
 }
 
 test digit1 {
@@ -259,7 +259,7 @@ test hexDigit0 {
 
 /// Recognizes zero or more specified hexadecimal numbers
 pub fn hexDigit1(input: []const u8) !IResult {
-    return try ab.prohibitEmptyResult("hexDigit1", hexDigit0, input);
+    return try ab.prohibitEmptyResult([]const u8, "hexDigit1", hexDigit0, input);
 }
 
 test hexDigit1 {
@@ -304,7 +304,7 @@ test octDigit0 {
 
 /// Recognizes zero or more specified oxtal numbers
 pub fn octDigit1(input: []const u8) !IResult {
-    return try ab.prohibitEmptyResult("octDigit1", octDigit0, input);
+    return try ab.prohibitEmptyResult([]const u8, "octDigit1", octDigit0, input);
 }
 
 test octDigit1 {
@@ -507,7 +507,7 @@ pub fn multispace0(input: []const u8) !IResult {
 
 // Recognizes spaces, tabs, carriage returns and line endings.
 pub fn multispace1(input: []const u8) !IResult {
-    return try ab.prohibitEmptyResult("multispace1", multispace0, input);
+    return try ab.prohibitEmptyResult([]const u8, "multispace1", multispace0, input);
 }
 
 // Recognizes zero or more spaces and tabs.
@@ -518,7 +518,7 @@ pub fn space0(input: []const u8) !IResult {
 
 // Recognizes spaces and tabs.
 pub fn space1(input: []const u8) !IResult {
-    return try ab.prohibitEmptyResult("space1", space0, input);
+    return try ab.prohibitEmptyResult([]const u8, "space1", space0, input);
 }
 
 // Recognizes tabs.

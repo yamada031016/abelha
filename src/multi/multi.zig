@@ -48,13 +48,7 @@ pub fn many1(parser: ParserFunc) fn ([]const u8) anyerror!ab.Result([]const []co
         fn many1(input: []const u8) !ab.Result([]const []const u8) {
             errdefer |e| ab.report(e, .{ @src().fn_name, parser, input });
 
-            const rest, const result = try ab.prohibitEmptyResult("many0", many0, input);
-
-            if (result.len == 0) {
-                return error.NotFound;
-            } else {
-                return .{ rest, result };
-            }
+            return try ab.prohibitEmptyResult([]const []const u8, "many0", many0(parser), input);
         }
     }.many1;
 }
