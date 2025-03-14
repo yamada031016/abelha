@@ -78,7 +78,7 @@ fn examineArgType(arg: anytype) ParserArgType {
 // args[2]: parse function input
 // args[3..]: optional infomation
 pub fn report(err: anyerror, args: anytype) void {
-    if (@import("config").enableLogger) {
+    if (@import("config").enableLogger or comptime (@import("builtin").mode == .Debug or @import("builtin").mode == .ReleaseSafe)) {
         const argType = examineArgType(args[1]);
         switch (err) {
             error.InputTooShort => {
