@@ -4,12 +4,17 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const enableLogger = b.option(bool, "enableLogger", "Enable logging function.") orelse false;
+    const options = b.addOptions();
+    options.addOption(bool, "enableLogger", enableLogger);
+
     const exe = b.addExecutable(.{
         .name = "abelha",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = .Debug,
     });
+    exe.root_module.addOptions("config", options);
 
     const abelha_mod = b.addModule("abelha", .{
         .root_source_file = b.path("src/abelha.zig"),
@@ -37,7 +42,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
+    exe_unit_tests.root_module.addOptions("config", options);
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 
     const test_step = b.step("test", "Run unit tests");
